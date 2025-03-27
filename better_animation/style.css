@@ -70,3 +70,23 @@ body {
     background-color: #cccccc;
     cursor: not-allowed;
   }
+
+  .toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.toggle-btn {
+    background-color: #ddd;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.toggle-btn.active {
+    background-color: #4CAF50;
+    color: white;
+}

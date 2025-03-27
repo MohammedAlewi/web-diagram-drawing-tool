@@ -11,6 +11,7 @@
    */
   constructor(config) {
     // DOM Elements
+    this.toggleManager = config.toggleManager
     this.svgElement = config.svgElement;
     this.controls = {
       lineColor: config.controls.lineColor,
@@ -141,9 +142,11 @@
    * @param {MouseEvent} e - The mouse event
    */
   handleMouseDown(e) {
-    const point = this.getMousePosition(e);
-    this.isDrawing = true;
-    this.startPath(point.x, point.y);
+    if(this.toggleManager.getCurrentType() == "line") {
+      const point = this.getMousePosition(e);
+      this.isDrawing = true;
+      this.startPath(point.x, point.y);
+    }
   }
   
   /**
@@ -323,7 +326,7 @@
       this.pathHistory.push(this.currentPath);
       
       // Enable undo button if there are paths
-      this.controls.undoButton.disabled = false;
+      // this.controls.undoButton.disabled = false;
     }
     
     this.currentPath = null;
@@ -340,9 +343,9 @@
       this.svgElement.removeChild(lastPath);
       
       // Disable undo button if no more paths
-      if (this.pathHistory.length === 0) {
-        this.controls.undoButton.disabled = true;
-      }
+      // if (this.pathHistory.length === 0) {
+      //   this.controls.undoButton.disabled = true;
+      // }
     }
   }
   
@@ -358,7 +361,7 @@
     
     // Clear history and disable undo button
     this.pathHistory = [];
-    this.controls.undoButton.disabled = true;
+    // this.controls.undoButton.disabled = true;
   }
   
   /**
@@ -446,9 +449,273 @@
   }
 }
 
-// Initialize the app when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
+
+
+class RectangleDrawer {
+  constructor(app, toggleManager, svgElement) {
+      this.app = app;
+      this.toggleManager = toggleManager
+      this.svgElement = svgElement;
+      this.width = app.height
+      this.height = app.width
+      
+      this.currentRect = null;
+      this.selectedRect = null;
+      this.isDrawing = false;
+      this.rectangles = []; // Store all created rectangles
+      this.undoStack = []; // Stack for undo operations
+
+      // Bind methods to ensure correct context
+      this.handleMouseDown = this.handleMouseDown.bind(this);
+      this.drawRectangle = this.drawRectangle.bind(this);
+      this.stopDrawing = this.stopDrawing.bind(this);
+      this.undoLastOperation = this.undoLastOperation.bind(this);
+
+      this.initialize();
+  }
+
+  initialize() {
+      this.app.drawGrid();
+      this.setupEventListeners();
+      this.setupControls();
+  }
+
+  // Event listeners setup
+  setupEventListeners() {
+      this.svgElement.addEventListener('mousedown', this.handleMouseDown);
+      this.svgElement.addEventListener('mousemove', this.drawRectangle);
+      this.svgElement.addEventListener('mouseup', this.stopDrawing);
+      this.svgElement.addEventListener('mouseleave', this.stopDrawing);
+  }
+
+  setupControls() {
+      const bgColorPicker = document.getElementById('bgColorPicker');
+      const borderColorPicker = document.getElementById('borderColorPicker');
+      const borderRadiusSlider = document.getElementById('borderRadiusSlider');
+      const borderRadiusValue = document.getElementById('borderRadiusValue');
+      const borderThicknessSlider = document.getElementById('borderThicknessSlider');
+      const borderThicknessValue = document.getElementById('borderThicknessValue');
+      const undoButton = document.getElementById('undoButton');
+
+      // Background color change
+      bgColorPicker.addEventListener('input', (e) => {
+          if (this.selectedRect) {
+              this.selectedRect.setAttribute('fill', e.target.value);
+          }
+      });
+
+      // Border color change
+      borderColorPicker.addEventListener('input', (e) => {
+          if (this.selectedRect) {
+              this.selectedRect.setAttribute('stroke', e.target.value);
+          }
+      });
+
+      // Border radius change
+      borderRadiusSlider.addEventListener('input', (e) => {
+          borderRadiusValue.textContent = e.target.value;
+          if (this.selectedRect) {
+              this.selectedRect.setAttribute('rx', e.target.value);
+              this.selectedRect.setAttribute('ry', e.target.value);
+          }
+      });
+
+      // Border thickness change
+      borderThicknessSlider.addEventListener('input', (e) => {
+          borderThicknessValue.textContent = e.target.value;
+          if (this.selectedRect) {
+              this.selectedRect.setAttribute('stroke-width', e.target.value);
+          }
+      });
+
+      // Undo functionality
+      undoButton.addEventListener('click', this.undoLastOperation);
+  }
+
+  handleMouseDown(e) {
+    if(this.toggleManager.getCurrentType() == "line") {
+      return  // NOT RECTANGLE 
+    }
+      // Check if clicking on existing rectangle
+      const clickedRect = e.target.closest('rect');
+      if (clickedRect && clickedRect !== this.currentRect) {
+          this.selectRectangle(clickedRect);
+          return;
+      }
+
+      // If not clicking on existing rectangle, start drawing
+      this.startDrawing(e);
+  }
+
+  selectRectangle(rect) {
+      // Deselect previously selected rectangle
+      if (this.selectedRect) {
+          this.selectedRect.classList.remove('selected-rect');
+      }
+
+      // Select new rectangle
+      this.selectedRect = rect;
+      rect.classList.add('selected-rect');
+
+      // Update control values to match selected rectangle
+      document.getElementById('bgColorPicker').value = this.rgbToHex(rect.getAttribute('fill'));
+      document.getElementById('borderColorPicker').value = this.rgbToHex(rect.getAttribute('stroke'));
+      
+      const borderRadius = rect.getAttribute('rx') || '0';
+      document.getElementById('borderRadiusSlider').value = borderRadius;
+      document.getElementById('borderRadiusValue').textContent = borderRadius;
+
+      const borderThickness = rect.getAttribute('stroke-width') || '2';
+      document.getElementById('borderThicknessSlider').value = borderThickness;
+      document.getElementById('borderThicknessValue').textContent = borderThickness;
+  }
+
+  // Helper method to convert RGB to Hex
+  rgbToHex(rgb) {
+      // If it's already a hex, return it
+      if (rgb.startsWith('#')) return rgb;
+
+      // Parse RGB values
+      const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+      if (!match) return rgb;
+
+      // Convert to hex
+      const r = parseInt(match[1]).toString(16).padStart(2, '0');
+      const g = parseInt(match[2]).toString(16).padStart(2, '0');
+      const b = parseInt(match[3]).toString(16).padStart(2, '0');
+
+      return `#${r}${g}${b}`;
+  }
+
+  startDrawing(e) {
+      // Deselect any previously selected rectangle
+      if (this.selectedRect) {
+          this.selectedRect.classList.remove('selected-rect');
+          this.selectedRect = null;
+      }
+
+      this.isDrawing = true;
+      const point = this.getGridSnappedCoords(e);
+      
+      this.currentRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      this.currentRect.setAttribute('x', point.x);
+      this.currentRect.setAttribute('y', point.y);
+      this.currentRect.setAttribute('width', '0');
+      this.currentRect.setAttribute('height', '0');
+      this.currentRect.setAttribute('fill', document.getElementById('bgColorPicker').value);
+      this.currentRect.setAttribute('stroke', document.getElementById('borderColorPicker').value);
+      this.currentRect.setAttribute('stroke-width', '2');
+      
+      this.svgElement.appendChild(this.currentRect);
+  }
+
+  drawRectangle(e) {
+      if (!this.isDrawing) return;
+      
+      const point = this.getGridSnappedCoords(e);
+      const startX = parseFloat(this.currentRect.getAttribute('x'));
+      const startY = parseFloat(this.currentRect.getAttribute('y'));
+      
+      const width = Math.abs(point.x - startX);
+      const height = Math.abs(point.y - startY);
+      
+      const x = point.x < startX ? point.x : startX;
+      const y = point.y < startY ? point.y : startY;
+      
+      this.currentRect.setAttribute('x', x);
+      this.currentRect.setAttribute('y', y);
+      this.currentRect.setAttribute('width', width);
+      this.currentRect.setAttribute('height', height);
+  }
+
+  stopDrawing() {
+      if (!this.isDrawing) return;
+
+      this.isDrawing = false;
+      
+      // Only add to undo stack if rectangle has some size
+      if (parseFloat(this.currentRect.getAttribute('width')) > 0 && 
+          parseFloat(this.currentRect.getAttribute('height')) > 0) {
+          this.undoStack.push(this.currentRect);
+      }
+
+      this.currentRect = null;
+  }
+
+  undoLastOperation() {
+      if (this.undoStack.length === 0) return;
+
+      const lastRect = this.undoStack.pop();
+      this.svgElement.removeChild(lastRect);
+
+      // Deselect any selected rectangle
+      if (this.selectedRect) {
+          this.selectedRect.classList.remove('selected-rect');
+          this.selectedRect = null;
+      }
+  }
+
+  getGridSnappedCoords(e) {
+      const rect = this.svgElement.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      // Snap to grid
+      const snappedX = Math.round(x / this.app.settings.gridSize) * this.app.settings.gridSize;
+      const snappedY = Math.round(y / this.app.settings.gridSize) * this.app.settings.gridSize;
+      
+      return { x: snappedX, y: snappedY };
+  }
+}
+
+
+class ToggleManager {
+  constructor() {
+      // Initial state variable
+      this.currentType = 'box';
+
+      // Get all toggle buttons
+      this.toggleButtons = document.querySelectorAll('.toggle-btn');
+
+      // Bind the event listener method
+      this.handleToggle = this.handleToggle.bind(this);
+
+      // Add event listeners to buttons
+      this.toggleButtons.forEach(button => {
+          button.addEventListener('click', this.handleToggle);
+      });
+  }
+
+  // Method to handle toggle
+  handleToggle(event) {
+      // Remove active class from all buttons
+      this.toggleButtons.forEach(btn => btn.classList.remove('active'));
+      
+      // Add active class to clicked button
+      event.target.classList.add('active');
+
+      // Update the state variable
+      this.currentType = event.target.dataset.type;
+
+      // Log the current type (you can replace this with any desired action)
+      console.log(`Current type: ${this.currentType}`);
+  }
+
+  // Optional method to get current type
+  getCurrentType() {
+      return this.currentType;
+  }
+}
+
+// Initialize the toggle manager
+
+
+// Initialize the drawing system
+document.addEventListener('DOMContentLoaded', () => {
+  const toggleManager = new ToggleManager();
+
   const app = new GridDrawingApp({
+    toggleManager: toggleManager,
     svgElement: document.getElementById('drawingSvg'),
     width: 800,
     height: 500,
@@ -468,4 +735,8 @@ document.addEventListener('DOMContentLoaded', function() {
       pathOutput: document.getElementById('pathOutput')
     }
   });
+  
+  const svgElement = document.getElementById('drawingSvg');
+
+  new RectangleDrawer(app, toggleManager, svgElement);
 });
