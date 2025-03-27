@@ -338,6 +338,9 @@
    * Remove the last path from the drawing
    */
   undoLastPath() {
+    if(this.toggleManager.getCurrentType() != "line") {
+      return
+    }
     if (this.pathHistory.length > 0) {
       const lastPath = this.pathHistory.pop();
       this.svgElement.removeChild(lastPath);
@@ -643,6 +646,9 @@ class RectangleDrawer {
   }
 
   undoLastOperation() {
+    if(this.toggleManager.getCurrentType() == "line") {
+      return
+    }
       if (this.undoStack.length === 0) return;
 
       const lastRect = this.undoStack.pop();
