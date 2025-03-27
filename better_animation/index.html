@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SVG Grid Drawing Tool</title>
+  <title>Drawing Tool</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>SVG Grid Drawing Tool</h1>
+
         <div class="controls">
+            <h1>Drawing Tool</h1>
           <div class="control-group">
             <label for="lineColor">Line Color:</label>
             <input type="color" id="lineColor" value="#3367d6">
@@ -18,16 +19,19 @@
             <label for="lineThickness">Line Thickness:</label>
             <input type="range" id="lineThickness" min="1" max="10" value="3">
             <span id="thicknessValue">3px</span>
+
+
           </div>
+          <div class="checkbox-group">
+            <input type="checkbox" id="dashedLine">
+            <label for="dashedLine">Dashed Line</label>
+        </div>
           <div class="control-group">
             <label for="gridSize">Grid Size:</label>
             <input type="range" id="gridSize" min="10" max="50" value="30">
             <span id="gridSizeValue">30px</span>
           </div>
-          <div class="checkbox-group">
-            <input type="checkbox" id="dashedLine">
-            <label for="dashedLine">Dashed Line</label>
-          </div>
+
           <div class="control-group" id="dashSettingsGroup" style="display: none;">
             <label for="dashArray">Dash Pattern:</label>
             <input type="range" id="dashArray" min="1" max="20" value="5">
@@ -59,11 +63,11 @@
             </div>
         </div>
         </div>
-        <div class="drawing-area">
-          <svg id="drawingSvg" width="800" height="500"></svg>
-        </div>
         <pre id="pathOutput" style="display: none; background: #f5f5f5; padding: 10px; border-radius: 4px; overflow: auto; max-height: 200px;"></pre>
 
+      </div>
+      <div class="drawing-area">
+        <svg id="drawingSvg"></svg>
       </div>
 
 <script src="script.js"> </script>

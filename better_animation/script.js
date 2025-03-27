@@ -720,11 +720,17 @@ class ToggleManager {
 document.addEventListener('DOMContentLoaded', () => {
   const toggleManager = new ToggleManager();
 
+  const screenHeight = window.innerHeight;
+  const screenWidth = window.innerWidth;
+
+  let width = screenWidth - Math.ceil(screenWidth * 0.03);
+  let height = screenHeight - Math.ceil(screenHeight * 0.3);
+
   const app = new GridDrawingApp({
     toggleManager: toggleManager,
     svgElement: document.getElementById('drawingSvg'),
-    width: 800,
-    height: 500,
+    width: width,
+    height: height,
     controls: {
       lineColor: document.getElementById('lineColor'),
       lineThickness: document.getElementById('lineThickness'),
