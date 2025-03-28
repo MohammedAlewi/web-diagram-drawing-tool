@@ -499,6 +499,7 @@ class RectangleDrawer {
       const borderThicknessSlider = document.getElementById('borderThicknessSlider');
       const borderThicknessValue = document.getElementById('borderThicknessValue');
       const undoButton = document.getElementById('undoButton');
+      const clearButton = document.getElementById('clearButton');
 
       // Background color change
       bgColorPicker.addEventListener('input', (e) => {
@@ -533,6 +534,7 @@ class RectangleDrawer {
 
       // Undo functionality
       undoButton.addEventListener('click', this.undoLastOperation);
+      clearButton.addEventListener('click', this.clearAllRects);
   }
 
   handleMouseDown(e) {
@@ -590,6 +592,18 @@ class RectangleDrawer {
       return `#${r}${g}${b}`;
   }
 
+  clearAllRects() {
+    // Remove all rect, keep the grid
+    const rects = document.getElementsByTagName('rect')  //this.svgElement.querySelectorAll('rect');
+    Array.prototype.slice.call(rects).forEach(rect => {
+      rect.remove();
+    });
+    
+    // Clear history and disable undo button
+    // this.pathHistory = [];
+    // this.controls.undoButton.disabled = true;
+  }
+  
   startDrawing(e) {
       // Deselect any previously selected rectangle
       if (this.selectedRect) {
@@ -704,7 +718,6 @@ class ToggleManager {
       this.currentType = event.target.dataset.type;
 
       // Log the current type (you can replace this with any desired action)
-      console.log(`Current type: ${this.currentType}`);
   }
 
   // Optional method to get current type
@@ -724,7 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const screenWidth = window.innerWidth;
 
   let width = screenWidth - Math.ceil(screenWidth * 0.03);
-  let height = screenHeight - Math.ceil(screenHeight * 0.3);
+  let height = screenHeight - Math.ceil(screenHeight * 0.25);
 
   const app = new GridDrawingApp({
     toggleManager: toggleManager,
