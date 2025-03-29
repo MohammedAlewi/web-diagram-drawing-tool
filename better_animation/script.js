@@ -766,9 +766,6 @@ function open_editor_view() {
 
 class DialogBox {
   constructor() {
-      this.name = "NAME"
-      this.description = "DES"
-
       // Dialog Box
       this.create_description()
       $('#closeBtn, #cancelBtn').click(this.close_editor())
@@ -814,10 +811,6 @@ class DialogBox {
               alert('Please enter a name and description.');
               return;
           }
-              
-          this.name = name
-          this.description = description
-          console.log(description.trim())
           open_dialog_view()
       }
   }
