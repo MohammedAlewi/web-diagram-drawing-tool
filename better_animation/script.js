@@ -554,8 +554,15 @@ class RectangleDrawer {
   }
   dialogBox(e){
      // Check if clicking on existing rectangle
-     console.log('"çlicked"')
-     open_editor_view()
+    console.log('"çlicked"')
+    const name = $('#name').val();
+    const description = $('#summernote').summernote('code');
+    
+    if (name && description){
+      open_dialog_view()
+    } else{
+      open_editor_view()
+    }
 
     //  const clickedRect = e.target.closest('rect');
     //  const dialog = new DialogBox()
@@ -738,6 +745,8 @@ class ToggleManager {
 
 // Initialize the dialog manager
 function open_dialog_view() {
+    $('#dialog-box-viewer').css('display', "block")
+    $('#dialog-box-viewer').css('top', "25%")
     $('#EditBtn').css('display', "inline-block")
     $('#view_mode').css('display', "block")
     $('#submitBtn').css('display', "none")
