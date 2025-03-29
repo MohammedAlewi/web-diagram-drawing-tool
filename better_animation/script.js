@@ -489,6 +489,7 @@ class RectangleDrawer {
       this.svgElement.addEventListener('mousemove', this.drawRectangle);
       this.svgElement.addEventListener('mouseup', this.stopDrawing);
       this.svgElement.addEventListener('mouseleave', this.stopDrawing);
+      this.svgElement.addEventListener('dblclick', this.dialogBox);
   }
 
   setupControls() {
@@ -551,7 +552,15 @@ class RectangleDrawer {
       // If not clicking on existing rectangle, start drawing
       this.startDrawing(e);
   }
+  dialogBox(e){
+     // Check if clicking on existing rectangle
+     console.log('"çlicked"')
+     open_editor_view()
 
+    //  const clickedRect = e.target.closest('rect');
+    //  const dialog = new DialogBox()
+    //  dialog.open_editor()
+  }
   selectRectangle(rect) {
       // Deselect previously selected rectangle
       if (this.selectedRect) {
@@ -594,7 +603,7 @@ class RectangleDrawer {
 
   clearAllRects() {
     // Remove all rect, keep the grid
-    const rects = document.getElementsByTagName('rect')  //this.svgElement.querySelectorAll('rect');
+    const rects = document.getElementsByTagName('rect')
     Array.prototype.slice.call(rects).forEach(rect => {
       rect.remove();
     });
@@ -622,8 +631,8 @@ class RectangleDrawer {
       this.currentRect.setAttribute('fill', document.getElementById('bgColorPicker').value);
       this.currentRect.setAttribute('stroke', document.getElementById('borderColorPicker').value);
       this.currentRect.setAttribute('stroke-width', '2');
-      
       this.svgElement.appendChild(this.currentRect);
+
   }
 
   drawRectangle(e) {
@@ -667,6 +676,7 @@ class RectangleDrawer {
 
       const lastRect = this.undoStack.pop();
       this.svgElement.removeChild(lastRect);
+
 
       // Deselect any selected rectangle
       if (this.selectedRect) {
@@ -726,11 +736,87 @@ class ToggleManager {
   }
 }
 
-// Initialize the toggle manager
+// Initialize the dialog manager
+function open_dialog_view() {
+    $('#EditBtn').css('display', "inline-block")
+    $('#view_mode').css('display', "block")
+    $('#submitBtn').css('display', "none")
+    $('#edit_mode').css('display', "none")
+    $('#show_name').html($('#name').val())
+    $('#show_description').html($('#summernote').summernote('code'))
+}
+function open_editor_view() {
+    $('#dialog-box-viewer').css('display', "block")
+    $('#body').css('backgroundColor', "rgba(0, 0, 0, 0.4)")
+    $('#open-editor-btn').css('display', "none")
+    $('#EditBtn').css('display', "none")
+    $('#view_mode').css('display', "none")
+    $('#submitBtn').css('display', "inline-block") 
+    $('#edit_mode').css('display', "block")
+}
 
+class DialogBox {
+  constructor() {
+      this.name = "NAME"
+      this.description = "DES"
+
+      // Dialog Box
+      this.create_description()
+      $('#closeBtn, #cancelBtn').click(this.close_editor())
+      $('#submitBtn').click(this.submit_button())
+      $('#EditBtn').click(this.open_editor())
+  }
+
+  create_description() {
+      $('#summernote').summernote({
+          placeholder: 'Enter description here...',
+          height: '400',
+          toolbar: [
+              ['style', ['style']],
+              ['font', ['bold', 'underline', 'clear']],
+              ['color', ['color']],
+              ['para', ['ul', 'ol', 'paragraph']],
+              ['insert', ['link', ]],
+              ['view', ['fullscreen', 'help']]
+          ]
+      });
+  }
+
+  close_editor() {
+      return function() {
+          $('#body').css('backgroundColor', "white")
+          $('#dialog-box-viewer').css('display', "none")
+          $('#open-editor-btn').css('display', "inline-block")
+          $('#titles').css('display', "block")
+      }
+
+  }
+
+  open_editor() {
+      return function() {open_editor_view()}
+  }
+
+  submit_button() {
+      return function() {
+          const name = $('#name').val();
+          const description = $('#summernote').summernote('code');
+          
+          if (name.trim() === '' || description.trim() === '') {
+              alert('Please enter a name and description.');
+              return;
+          }
+              
+          this.name = name
+          this.description = description
+          console.log(description.trim())
+          open_dialog_view()
+      }
+  }
+}
 
 // Initialize the drawing system
 document.addEventListener('DOMContentLoaded', () => {
+  const dialog = new DialogBox()
   const toggleManager = new ToggleManager();
 
   const screenHeight = window.innerHeight;

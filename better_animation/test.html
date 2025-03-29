@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dialog Box with View and Edit Mode</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        /* Style for the SVG rectangle */
+        svg {
+            border: 1px solid #ccc;
+        }
+        rect {
+            cursor: pointer;
+            fill: lightblue;
+            stroke: black;
+            stroke-width: 2;
+        }
+
+        /* Dialog Box */
+        .dialog {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            border: 2px solid #ccc;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 300px;
+            z-index: 100;
+        }
+
+        /* Edit and View mode buttons */
+        .dialog button {
+            margin: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        /* Textarea for description */
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            resize: none;
+        }
+
+        .editor {
+            display: none;
+        }
+
+        .view-mode {
+            display: block;
+        }
+
+        /* Artistic Text Styles */
+        .artistic-text {
+            font-family: 'Cursive', sans-serif;
+            font-size: 20px;
+            color: #4CAF50;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        /* Editing Tools */
+        .editing-tools {
+            display: flex;
+            gap: 10px;
+        }
+        .editing-tools button {
+            font-size: 16px;
+            padding: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<!-- SVG Rectangle -->
+<svg width="500" height="200">
+    <rect id="editRectangle" x="50" y="50" width="200" height="100"></rect>
+    <text id="rectangleText" x="150" y="110" class="artistic-text">Click to Edit</text>
+</svg>
+
+<!-- Dialog Box -->
+<div class="dialog" id="dialogBox">
+    <h2>Edit Info</h2>
+    <div class="view-mode">
+        <p><strong>Name:</strong> <span id="viewName">Click to Edit</span></p>
+        <p><strong>Description:</strong> <span id="viewDescription">No description provided</span></p>
+    </div>
+    
+    <div class="editor">
+        <label for="nameInput">Name:</label>
+        <input type="text" id="nameInput" class="nameInput" placeholder="Enter Name">
+        <br><br>
+        <label for="descriptionInput">Description:</label>
+        <textarea id="descriptionInput" placeholder="Enter Description"></textarea>
+        <br><br>
+        <div class="editing-tools">
+            <button onclick="document.execCommand('bold')">Bold</button>
+            <button onclick="document.execCommand('italic')">Italic</button>
+            <button onclick="document.execCommand('underline')">Underline</button>
+        </div>
+        <br><br>
+        <button onclick="saveChanges()">Save Changes</button>
+        <button onclick="toggleMode()">Cancel</button>
+    </div>
+</div>
+
+<script>
+    class DialogBox {
+        constructor() {
+            this.dialog = document.getElementById('dialogBox');
+            this.viewMode = document.querySelector('.view-mode');
+            this.editorMode = document.querySelector('.editor');
+            this.rect = document.getElementById('editRectangle');
+            this.text = document.getElementById('rectangleText');
+            this.nameInput = document.getElementById('nameInput');
+            this.descriptionInput = document.getElementById('descriptionInput');
+            this.viewName = document.getElementById('viewName');
+            this.viewDescription = document.getElementById('viewDescription');
+            this.editMode = false;
+
+            // Bind events
+            this.rect.addEventListener('click', () => this.openDialog());
+        }
+
+        openDialog() {
+            this.dialog.style.display = 'block';
+            this.viewMode.style.display = 'block';
+            this.editorMode.style.display = 'none';
+            this.viewName.textContent = this.text.textContent;
+            this.viewDescription.textContent = "No description provided";
+            this.nameInput.value = this.text.textContent;
+            this.descriptionInput.value = '';
+        }
+
+        toggleMode() {
+            this.editMode = !this.editMode;
+            if (this.editMode) {
+                this.viewMode.style.display = 'none';
+                this.editorMode.style.display = 'block';
+            } else {
+                this.viewMode.style.display = 'block';
+                this.editorMode.style.display = 'none';
+            }
+        }
+
+        saveChanges() {
+            const newName = this.nameInput.value;
+            const newDescription = this.descriptionInput.value;
+            
+            if (newName) {
+                this.text.textContent = newName;
+                this.viewName.textContent = newName;
+                this.text.setAttribute('x', this.rect.getAttribute('x') + this.rect.getAttribute('width') / 2 - this.text.getBBox().width / 2);
+            }
+            if (newDescription) {
+                this.viewDescription.textContent = newDescription;
+            }
+            this.dialog.style.display = 'none';
+        }
+    }
+
+    const dialogBox = new DialogBox();
+
+    function toggleMode() {
+        dialogBox.toggleMode();
+    }
+
+    function saveChanges() {
+        dialogBox.saveChanges();
+    }
+</script>
+
+</body>
+</html>

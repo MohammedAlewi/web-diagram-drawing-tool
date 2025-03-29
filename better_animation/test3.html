@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dialog Box with Summernote Editor</title>
+    <!-- Include jQuery, Bootstrap, and Summernote CSS/JS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-bs5.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-bs5.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        .dialog-container {
+            background-color: white;
+            display: none;
+            border-radius: 3px;
+            width: 80%;
+            max-width: 800px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .dialog-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .dialog-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 0;
+        }
+        
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #777;
+        }
+        
+        .dialog-body {
+            padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        .name-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 1px;
+            font-size: 16px;
+        }
+        
+        .description-container {
+            height: 60vh; /* 60% of viewport height */
+        }
+        
+        .dialog-footer {
+            width: 100%;
+            padding: 15px 20px;
+            text-align: right;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .submit-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .cancel-button {
+            background-color: #f1f1f1;
+            color: #333;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body id="body">
+    <button id="open-editor-btn">Open Text Editor</button>
+    <div class="dialog-container" id="dialog-box-viewer">
+        <div class="dialog-body" id="view_mode">
+            <h1><div id="show_name"></div></h1>
+            <hr/>
+            <div id="show_description"></div>
+        </div>
+        <div class="dialog-body" id="edit_mode">
+            <form id="entryForm">
+                <div class="form-group">
+                    <!-- <label for="name">Name:</label> -->
+                    <input type="text" id="name" class="name-input" placeholder="Enter name" required>
+                </div>
+                <div class="form-group">
+                    <!-- <label for="description">Description:</label> -->
+                    <div class="description-container">
+                        <div id="summernote"></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="dialog-footer">
+            <button class="submit-button" id="EditBtn">Edit</button>
+            <button class="cancel-button" id="cancelBtn">Cancel</button>
+            <button class="submit-button" id="submitBtn">Submit</button>
+        </div>
+    </div>
+
+    <script>
+        function open_dialog_view() {
+            $('#EditBtn').css('display', "inline-block")
+            $('#view_mode').css('display', "block")
+            $('#submitBtn').css('display', "none")
+            $('#edit_mode').css('display', "none")
+            $('#show_name').html($('#name').val())
+            $('#show_description').html($('#summernote').summernote('code'))
+        }
+        class DialogBox {
+            constructor() {
+                this.name = "NAME"
+                this.description = "DES"
+
+                // Dialog Box
+                this.create_description()
+                $('#open-editor-btn').click(this.open_editor())
+                $('#closeBtn, #cancelBtn').click(this.close_editor())
+                $('#submitBtn').click(this.submit_button())
+                $('#EditBtn').click(this.open_editor())
+            }
+        
+            create_description() {
+                $('#summernote').summernote({
+                    placeholder: 'Enter description here...',
+                    height: '400',
+                    toolbar: [
+                        ['style', ['style']],
+                        ['font', ['bold', 'underline', 'clear']],
+                        ['color', ['color']],
+                        ['para', ['ul', 'ol', 'paragraph']],
+                        ['insert', ['link', ]],
+                        ['view', ['fullscreen', 'help']]
+                    ]
+                });
+            }
+
+            close_editor() {
+                return function() {
+                    $('#body').css('backgroundColor', "white")
+                    $('#dialog-box-viewer').css('display', "none")
+                    $('#open-editor-btn').css('display', "inline-block")
+                    $('#titles').css('display', "block")
+                }
+
+            }
+
+            open_editor() {
+                return function() {
+                    $('#dialog-box-viewer').css('display', "block")
+                    $('#body').css('backgroundColor', "rgba(0, 0, 0, 0.4)")
+                    $('#open-editor-btn').css('display', "none")
+                    $('#EditBtn').css('display', "none")
+                    $('#view_mode').css('display', "none")
+                    $('#submitBtn').css('display', "inline-block") 
+                    $('#edit_mode').css('display', "block")
+                }
+            }
+
+            submit_button() {
+                return function() {
+                    const name = $('#name').val();
+                    const description = $('#summernote').summernote('code');
+                    
+                    if (name.trim() === '' || description.trim() === '') {
+                        alert('Please enter a name and description.');
+                        return;
+                    }
+                        
+                    this.name = name
+                    this.description = description
+                    console.log(description.trim())
+                    open_dialog_view()
+                }
+            }
+        }
+
+        $(document).ready(function() {
+            const dialog = new DialogBox()
+        });
+    </script>
+</body>
+</html>
