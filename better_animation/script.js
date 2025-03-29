@@ -831,7 +831,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const screenHeight = window.innerHeight;
   const screenWidth = window.innerWidth;
 
-  let width = screenWidth - Math.ceil(screenWidth * 0.03);
+  let width = screenWidth - Math.ceil(screenWidth * 0.022);
   let height = screenHeight - Math.ceil(screenHeight * 0.25);
 
   const app = new GridDrawingApp({
