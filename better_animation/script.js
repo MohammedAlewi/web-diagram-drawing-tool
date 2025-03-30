@@ -648,7 +648,6 @@ class RectangleDrawer {
       this.currentRect.setAttribute('stroke', document.getElementById('borderColorPicker').value);
       this.currentRect.setAttribute('stroke-width', '2');
       this.svgElement.appendChild(this.currentRect);
-      // this.update_text(this.currentRect)
 
   }
 
@@ -673,6 +672,10 @@ class RectangleDrawer {
 
   stopDrawing() {
       if (!this.isDrawing) return;
+      
+      if (this.isDrawing) {
+        this.update_text(this.currentRect)
+      }
 
       this.isDrawing = false;
       
@@ -801,8 +804,8 @@ function open_editor_view() {
     $('#view_mode').css('display', "none")
     $('#submitBtn').css('display', "inline-block") 
     $('#edit_mode').css('display', "block")
-    $('#show_name').html('')
-    $('#show_description').html('')
+    $('#show_name').html("<br>")
+    $('#show_description').html('<br>')
 }
 
 class DialogBox {
