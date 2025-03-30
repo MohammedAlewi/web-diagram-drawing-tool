@@ -544,15 +544,15 @@ class RectangleDrawer {
     if(this.toggleManager.getCurrentType() == "line") {
       return  // NOT RECTANGLE 
     }
-      // Check if clicking on existing rectangle
-      const clickedRect = e.target.closest('rect');
-      if (clickedRect && clickedRect !== this.currentRect) {
-          this.selectRectangle(clickedRect);
-          return;
-      }
+    // Check if clicking on existing rectangle
+    const clickedRect = e.target.closest('rect');
+    if (clickedRect && clickedRect !== this.currentRect) {
+        this.selectRectangle(clickedRect);
+        return;
+    }
 
-      // If not clicking on existing rectangle, start drawing
-      this.startDrawing(e);
+    // If not clicking on existing rectangle, start drawing
+    this.startDrawing(e);
   }
   dialogBox(e){
      // Check if clicking on existing rectangle
@@ -560,10 +560,17 @@ class RectangleDrawer {
     let name = "";
     let description = "";
 
-    this.selectedRect = e.target.closest('rect');
+    if(e && e.target) {
+      this.selectTXT = e.target.closest('text');
+      this.selectedRect = e.target.closest('rect');
+      console.log(this.selectTXT, this.selectedRect)
+    }
+  
     const rectInfo = this.descriptions.filter(
       val => val[0] == this.selectedRect
     );
+
+
 
     if (rectInfo.length > 0) {
       name = rectInfo[0][1][0]
@@ -573,7 +580,7 @@ class RectangleDrawer {
     if (name && description){
       open_dialog_view(name, description)
     } else{
-      open_editor_view()
+      open_editor_view(e)
     }
 
   }
@@ -670,7 +677,7 @@ class RectangleDrawer {
       this.currentRect.setAttribute('height', height);
   }
 
-  stopDrawing() {
+  stopDrawing(e) {
       if (!this.isDrawing) return;
       
       if (this.isDrawing) {
@@ -689,7 +696,16 @@ class RectangleDrawer {
   }
 
   update_text(rectangle, text = "Double click to edit") {
+      // remove exixting one
+      if(this.selectTXT){
+        this.svgElement.removeChild(this.selectTXT);
+      }
       // Calculate center position
+      rectangle = this.currentRect || this.selectedRect
+
+      // if(!rectangle){
+      //   return false
+      // }
       const x = Number(rectangle.getAttribute("x"))
       const y = Number(rectangle.getAttribute("y"))
       const width = Number(rectangle.getAttribute("width"))
@@ -701,10 +717,8 @@ class RectangleDrawer {
       //     this.height / 2
       // );
       const fontSize = Math.min(Math.max(width / (text.length * 0.7), 12), height /2)
-      const centerX = x + Math.max((width - text.length * fontSize)/2, width*0.01);
-      const centerY = y + height/2 + height* 0.15;
-
-      console.log(x, y, width, height, centerX, centerY, fontSize,  text, (width - text.length * fontSize)/2)
+      let centerX = x + Math.max((width - text.length * fontSize)/2, width*0.01);
+      let centerY = y + height/2 + height* 0.15;
       // Update text
       let textSvg = document.createElementNS("http://www.w3.org/2000/svg", "text");
       textSvg.setAttribute("x", centerX);
@@ -714,6 +728,13 @@ class RectangleDrawer {
       textSvg.textContent = text;
 
       this.svgElement.appendChild(textSvg);
+
+      let textWidth = textSvg.getComputedTextLength();
+      centerX = x + Math.max((width - textWidth)/2, 0);
+      centerY = y + height/2 + height* 0.15;
+      textSvg.setAttribute("x", centerX);
+      textSvg.setAttribute("y", centerY);
+      return true
   }
 
   undoLastOperation() {
@@ -874,12 +895,11 @@ class DialogBox {
           ]
         )
       }
+      let res = this.rectangles.update_text(this.rectangles.selectedRect, name)
       open_dialog_view(name, description)
-      this.rectangles.update_text(this.rectangles.selectedRect, name)
     }
   }
 }
-
 
 // Initialize the drawing system
 document.addEventListener('DOMContentLoaded', () => {
