@@ -3,218 +3,364 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dialog Box with Summernote Editor</title>
-    <!-- Include jQuery, Bootstrap, and Summernote CSS/JS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-bs5.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-bs5.min.js"></script>
+    <title>SVG Path Follower - Stops</title>
+
+    <!-- CSS Styles -->
     <style>
         body {
+            font-family: sans-serif;
             display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #f4f4f4;
+            margin: 0;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            font-family: Arial, sans-serif;
-        }
-        
-        .dialog-container {
-            background-color: white;
-            display: none;
-            border-radius: 3px;
-            width: 80%;
-            max-width: 800px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-        
-        .dialog-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        .dialog-title {
-            font-size: 20px;
-            font-weight: bold;
-            margin: 0;
-        }
-        
-        .close-button {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #777;
-        }
-        
-        .dialog-body {
-            padding: 20px;
-        }
-        
-        .form-group {
+            gap: 15px;
             margin-bottom: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        
-        .name-input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 1px;
-            font-size: 16px;
-        }
-        
-        .description-container {
-            height: 60vh; /* 60% of viewport height */
-        }
-        
-        .dialog-footer {
-            width: 100%;
-            padding: 15px 20px;
-            text-align: right;
-            border-top: 1px solid #e0e0e0;
-        }
-        
-        .submit-button {
-            background-color: #4CAF50;
+
+        .controls button {
+            padding: 8px 15px;
+            font-size: 1em;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
             color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
+            transition: background-color 0.2s ease;
         }
-        
-        .cancel-button {
-            background-color: #f1f1f1;
-            color: #333;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
+
+        .controls button:hover {
+            background-color: #0056b3;
+        }
+
+        .size-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .size-control label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        .size-control input[type="range"] {
             cursor: pointer;
-            margin-right: 10px;
-            font-size: 16px;
+        }
+
+        .size-control span {
+            min-width: 25px;
+            text-align: right;
+            font-family: monospace;
+            color: #333;
+        }
+
+        .svg-container {
+            border: 1px solid #ccc;
+            background-color: #fff; /* Container background is white */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            max-width: 100%;
+        }
+
+        #motionSvg {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            background-color: #fff; /* Explicitly set SVG background if needed */
+        }
+
+        /* Style for the visible path */
+        #motionPath {
+             stroke: #4a90e2; /* Changed to a visible blue color */
+             stroke-width: 2;
+             stroke-dasharray: 5 5;
+             fill: none; /* Important: path should not be filled */
+        }
+
+        #followerRect {
+            transition: width 0.1s linear, height 0.1s linear, x 0.1s linear, y 0.1s linear, opacity 0.3s ease-out;
+            cursor: pointer;
         }
     </style>
 </head>
-<body id="body">
-    <button id="open-editor-btn">Open Text Editor</button>
-    <div class="dialog-container" id="dialog-box-viewer">
-        <div class="dialog-body" id="view_mode">
-            <h1><div id="show_name"></div></h1>
-            <hr/>
-            <div id="show_description"></div>
+<body>
+
+    <h1>Rectangle Following SVG Path (Stops)</h1>
+
+    <!-- Controls -->
+    <div class="controls">
+        <button id="togglePause">Pause</button> <!-- Will change text to Restart -->
+        <button id="restartAnim">Restart</button>
+        <div class="size-control">
+            <label for="rectWidth">Width:</label>
+            <input type="range" id="rectWidth" min="10" max="100" value="40">
+            <span id="widthValue">40</span>px
         </div>
-        <div class="dialog-body" id="edit_mode">
-            <form id="entryForm">
-                <div class="form-group">
-                    <!-- <label for="name">Name:</label> -->
-                    <input type="text" id="name" class="name-input" placeholder="Enter name" required>
-                </div>
-                <div class="form-group">
-                    <!-- <label for="description">Description:</label> -->
-                    <div class="description-container">
-                        <div id="summernote"></div>
-                    </div>
-                </div>
-            </form>
-        </div>
-        <div class="dialog-footer">
-            <button class="submit-button" id="EditBtn">Edit</button>
-            <button class="cancel-button" id="cancelBtn">Cancel</button>
-            <button class="submit-button" id="submitBtn">Submit</button>
+         <div class="size-control">
+            <label for="rectHeight">Height:</label>
+            <input type="range" id="rectHeight" min="10" max="100" value="20">
+            <span id="heightValue">20</span>px
         </div>
     </div>
 
-    <script>
-        function open_dialog_view() {
-            $('#EditBtn').css('display', "inline-block")
-            $('#view_mode').css('display', "block")
-            $('#submitBtn').css('display', "none")
-            $('#edit_mode').css('display', "none")
-            $('#show_name').html($('#name').val())
-            $('#show_description').html($('#summernote').summernote('code'))
-        }
-        class DialogBox {
-            constructor() {
-                this.name = "NAME"
-                this.description = "DES"
+    <!-- SVG Area -->
+    <div class="svg-container">
+        <svg id="motionSvg" width="600" height="400" viewBox="0 0 600 400">
+            <defs>
+                <!-- Defs can be empty or contain other definitions -->
+            </defs>
 
-                // Dialog Box
-                this.create_description()
-                $('#open-editor-btn').click(this.open_editor())
-                $('#closeBtn, #cancelBtn').click(this.close_editor())
-                $('#submitBtn').click(this.submit_button())
-                $('#EditBtn').click(this.open_editor())
+            <!-- The motion path, moved OUTSIDE <defs> to be rendered directly -->
+            <path id="motionPath"
+                  d="M 50 200 Q 150 50 300 200 T 550 200 C 580 350, 450 380, 300 300 S 50 250, 50 200 Z"
+                  />
+                  <!-- Styling is applied via CSS -->
+
+            <!-- The rectangle that will follow the path -->
+            <rect id="followerRect"
+                  x="-20"
+                  y="-10"
+                  width="40"
+                  height="20"
+                  fill="dodgerblue"
+                  stroke="black"
+                  stroke-width="1"
+                  style="opacity: 1;" /> <!-- Start visible -->
+        </svg>
+    </div>
+
+    <!-- Anime.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+
+    <!-- JavaScript Code -->
+    <script>
+        class PathFollower {
+            constructor(config) {
+                // --- Element References ---
+                this.svg = document.getElementById(config.svgId);
+                this.path = document.getElementById(config.pathId);
+                this.rect = document.getElementById(config.rectId);
+                this.togglePauseBtn = document.getElementById(config.togglePauseBtnId);
+                this.restartBtn = document.getElementById(config.restartBtnId);
+                this.widthSlider = document.getElementById(config.widthSliderId);
+                this.heightSlider = document.getElementById(config.heightSliderId);
+                this.widthValueSpan = document.getElementById(config.widthValueId);
+                this.heightValueSpan = document.getElementById(config.heightValueId);
+
+                if (!this.svg || !this.path || !this.rect || !this.togglePauseBtn || !this.restartBtn || !this.widthSlider || !this.heightSlider || !this.widthValueSpan || !this.heightValueSpan) {
+                    console.error("One or more elements not found. Check IDs.");
+                    return;
+                }
+
+                // --- State ---
+                this.isPaused = false;
+                this.isCompleted = false; // Track if the single run is complete
+                this.animation = null;
+
+                // --- Initialization ---
+                this._setInitialRectSize();
+                this._createAnimation();
+                this._setupEventListeners();
             }
-        
-            create_description() {
-                $('#summernote').summernote({
-                    placeholder: 'Enter description here...',
-                    height: '400',
-                    toolbar: [
-                        ['style', ['style']],
-                        ['font', ['bold', 'underline', 'clear']],
-                        ['color', ['color']],
-                        ['para', ['ul', 'ol', 'paragraph']],
-                        ['insert', ['link', ]],
-                        ['view', ['fullscreen', 'help']]
-                    ]
+
+            _setInitialRectSize() {
+                const initialWidth = parseFloat(this.widthSlider.value);
+                const initialHeight = parseFloat(this.heightSlider.value);
+                this.updateWidth(initialWidth);
+                this.updateHeight(initialHeight);
+                this.widthValueSpan.textContent = initialWidth;
+                this.heightValueSpan.textContent = initialHeight;
+            }
+
+            _createAnimation() {
+                const pathMotion = anime.path(this.path);
+
+                if (this.animation) {
+                    anime.remove(this.rect);
+                }
+
+                this.animation = anime({
+                    targets: this.rect,
+                    translateX: pathMotion('x'),
+                    translateY: pathMotion('y'),
+                    rotate: pathMotion('angle'),
+                    easing: 'linear',
+                    duration: 5000,
+                    loop: false, // *** CHANGED: Run only once ***
+                    autoplay: true,
+                    begin: (anim) => { // Runs at the very start of the animation
+                        console.log("Animation beginning");
+                        this.rect.style.opacity = 1; // Make sure it's visible
+                        this.isPaused = false;
+                        this.isCompleted = false; // Reset completed state on start/restart
+                        this.togglePauseBtn.disabled = false; // Enable pause button
+                        this.togglePauseBtn.textContent = 'Pause';
+                    },
+                    complete: (anim) => { // *** CHANGED: Runs only when loop: false and animation finishes ***
+                        console.log("Animation fully complete");
+                         this.isCompleted = true;
+                         this.isPaused = true; // Treat as paused/stopped at the end
+                         this.rect.style.opacity = 0; // Hide rectangle after completion
+                         this.togglePauseBtn.textContent = 'Restart'; // Change button text
+                         this.togglePauseBtn.disabled = false; // Keep button enabled for restart
+                    }
+                    // Removed loopComplete callback as loop is false
+                });
+
+                this.isPaused = !this.animation.autoplay;
+                this.togglePauseBtn.textContent = this.isPaused ? 'Play' : 'Pause';
+                if(this.animation.autoplay) {
+                     this.rect.style.opacity = 1;
+                } else {
+                    // If not autoplaying, it's initially paused and potentially completed (if run before)
+                    // Let's assume it starts fresh, so not completed yet if not autoplaying
+                     this.isCompleted = false;
+                     this.rect.style.opacity = 1; // Show if paused at start
+                }
+            }
+
+            _setupEventListeners() {
+                this.togglePauseBtn.addEventListener('click', this.togglePause.bind(this));
+                this.restartBtn.addEventListener('click', this.restart.bind(this));
+                this.rect.addEventListener('click', this.handleRectClick.bind(this));
+                this.widthSlider.addEventListener('input', (e) => {
+                    const newWidth = parseFloat(e.target.value);
+                    this.updateWidth(newWidth);
+                    this.widthValueSpan.textContent = newWidth;
+                });
+                this.heightSlider.addEventListener('input', (e) => {
+                    const newHeight = parseFloat(e.target.value);
+                    this.updateHeight(newHeight);
+                    this.heightValueSpan.textContent = newHeight;
                 });
             }
 
-            close_editor() {
-                return function() {
-                    $('#body').css('backgroundColor', "white")
-                    $('#dialog-box-viewer').css('display', "none")
-                    $('#open-editor-btn').css('display', "inline-block")
-                    $('#titles').css('display', "block")
+            // --- Control Methods ---
+
+            togglePause() {
+                if (!this.animation) return;
+
+                // If completed, pressing the button (now saying 'Restart') should restart
+                if (this.isCompleted) {
+                    this.restart();
+                    return;
                 }
 
+                // Otherwise, toggle pause/play
+                if (this.isPaused) {
+                    this.animation.play();
+                    this.togglePauseBtn.textContent = 'Pause';
+                    this.rect.style.opacity = 1; // Ensure visible when playing
+                } else {
+                    this.animation.pause();
+                    this.togglePauseBtn.textContent = 'Play';
+                    // Don't change opacity on pause
+                }
+                this.isPaused = !this.isPaused;
+                 this.togglePauseBtn.disabled = false; // Ensure enabled
+                console.log("Animation paused:", this.isPaused);
             }
 
-            open_editor() {
-                return function() {
-                    $('#dialog-box-viewer').css('display', "block")
-                    $('#body').css('backgroundColor', "rgba(0, 0, 0, 0.4)")
-                    $('#open-editor-btn').css('display', "none")
-                    $('#EditBtn').css('display', "none")
-                    $('#view_mode').css('display', "none")
-                    $('#submitBtn').css('display', "inline-block") 
-                    $('#edit_mode').css('display', "block")
+            restart() {
+                if (!this.animation) return;
+
+                console.log("Animation restarting");
+                this.rect.style.opacity = 1; // Make visible before restarting
+                this.isCompleted = false;
+                this.isPaused = false;
+                this.togglePauseBtn.disabled = false; // Ensure pause is enabled
+                this.togglePauseBtn.textContent = 'Pause'; // Reset button text
+                this.animation.restart(); // Restart the animation from the beginning
+            }
+
+            handleRectClick() {
+                if (!this.animation) return;
+                console.log("Rectangle clicked");
+                // If completed (and hidden), clicking does nothing useful unless we restart
+                // Let's make clicking restart it if completed
+                if (this.isCompleted) {
+                   console.log("Restarting via click on completed area");
+                   this.restart();
+                } else {
+                    this.togglePause(); // Otherwise, just toggle pause/play
                 }
             }
 
-            submit_button() {
-                return function() {
-                    const name = $('#name').val();
-                    const description = $('#summernote').summernote('code');
-                    
-                    if (name.trim() === '' || description.trim() === '') {
-                        alert('Please enter a name and description.');
-                        return;
-                    }
-                        
-                    this.name = name
-                    this.description = description
-                    console.log(description.trim())
-                    open_dialog_view()
-                }
+            updateWidth(newWidth) {
+                this.rect.setAttribute('width', newWidth);
+                this.rect.setAttribute('x', -newWidth / 2);
+            }
+
+            updateHeight(newHeight) {
+                this.rect.setAttribute('height', newHeight);
+                this.rect.setAttribute('y', -newHeight / 2);
             }
         }
 
-        $(document).ready(function() {
-            const dialog = new DialogBox()
+        // --- Initialize after DOM is loaded ---
+        let pathFollowerInstance = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            pathFollowerInstance = new PathFollower({
+                svgId: 'motionSvg',
+                pathId: 'motionPath',
+                rectId: 'followerRect',
+                togglePauseBtnId: 'togglePause',
+                restartBtnId: 'restartAnim',
+                widthSliderId: 'rectWidth',
+                heightSliderId: 'rectHeight',
+                widthValueId: 'widthValue',
+                heightValueId: 'heightValue'
+            });
         });
+
+        // --- Watcher Function ---
+        function watchFollowerState() {
+            if (pathFollowerInstance && pathFollowerInstance.animation) {
+                let stateMessage = 'Initializing...';
+                 // Check completion status FIRST
+                if(pathFollowerInstance.isCompleted) {
+                     stateMessage = 'Completed (Hidden & Stopped)';
+                } else if (pathFollowerInstance.isPaused) {
+                    stateMessage = 'Paused';
+                } else if (!pathFollowerInstance.animation.paused) { // Check animation state directly too
+                     stateMessage = 'Running';
+                } else {
+                     stateMessage = 'Starting/Unknown'; // Fallback
+                }
+
+                console.log(
+                    `Watcher -> Status: ${stateMessage} | Paused Flag: ${pathFollowerInstance.isPaused} | Completed Flag: ${pathFollowerInstance.isCompleted}`
+                );
+            } else {
+                console.log("Watcher -> PathFollower instance not ready yet.");
+            }
+        }
+
+        setTimeout(() => {
+             setInterval(watchFollowerState, 3000);
+             console.log("Watcher started.");
+        }, 500);
+
     </script>
+
 </body>
 </html>

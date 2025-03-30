@@ -455,7 +455,7 @@
 
 
 class RectangleDrawer {
-  constructor(app, toggleManager, svgElement) {
+  constructor(app, toggleManager, svgElement, descriptions = []) {
       this.app = app;
       this.toggleManager = toggleManager
       this.svgElement = svgElement;
@@ -467,13 +467,15 @@ class RectangleDrawer {
       this.isDrawing = false;
       this.rectangles = []; // Store all created rectangles
       this.undoStack = []; // Stack for undo operations
+      this.descriptions = descriptions;
 
       // Bind methods to ensure correct context
       this.handleMouseDown = this.handleMouseDown.bind(this);
       this.drawRectangle = this.drawRectangle.bind(this);
       this.stopDrawing = this.stopDrawing.bind(this);
       this.undoLastOperation = this.undoLastOperation.bind(this);
-
+      this.dialogBox = this.dialogBox.bind(this); 
+      this.update_text = this.update_text.bind(this); 
       this.initialize();
   }
 
@@ -554,19 +556,26 @@ class RectangleDrawer {
   }
   dialogBox(e){
      // Check if clicking on existing rectangle
-    console.log('"çlicked"')
-    const name = $('#name').val();
-    const description = $('#summernote').summernote('code');
+
+    let name = "";
+    let description = "";
+
+    this.selectedRect = e.target.closest('rect');
+    const rectInfo = this.descriptions.filter(
+      val => val[0] == this.selectedRect
+    );
+
+    if (rectInfo.length > 0) {
+      name = rectInfo[0][1][0]
+      description = rectInfo[0][1][1]
+    }
     
     if (name && description){
-      open_dialog_view()
+      open_dialog_view(name, description)
     } else{
       open_editor_view()
     }
 
-    //  const clickedRect = e.target.closest('rect');
-    //  const dialog = new DialogBox()
-    //  dialog.open_editor()
   }
   selectRectangle(rect) {
       // Deselect previously selected rectangle
@@ -639,6 +648,7 @@ class RectangleDrawer {
       this.currentRect.setAttribute('stroke', document.getElementById('borderColorPicker').value);
       this.currentRect.setAttribute('stroke-width', '2');
       this.svgElement.appendChild(this.currentRect);
+      // this.update_text(this.currentRect)
 
   }
 
@@ -673,6 +683,34 @@ class RectangleDrawer {
       }
 
       this.currentRect = null;
+  }
+
+  update_text(rectangle, text = "Double click to edit") {
+      // Calculate center position
+      const x = Number(rectangle.getAttribute("x"))
+      const y = Number(rectangle.getAttribute("y"))
+      const width = Number(rectangle.getAttribute("width"))
+      const height = Number(rectangle.getAttribute("height"))
+ 
+      // Calculate appropriate font size (simpler approach)
+      // const fontSize = Math.min(
+      //     Math.max(width / (text.length * 0.7), 12),
+      //     this.height / 2
+      // );
+      const fontSize = Math.min(Math.max(width / (text.length * 0.7), 12), height /2)
+      const centerX = x + Math.max((width - text.length * fontSize)/2, width*0.01);
+      const centerY = y + height/2 + height* 0.15;
+
+      console.log(x, y, width, height, centerX, centerY, fontSize,  text, (width - text.length * fontSize)/2)
+      // Update text
+      let textSvg = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      textSvg.setAttribute("x", centerX);
+      textSvg.setAttribute("y", centerY);
+      textSvg.setAttribute("font-size", fontSize + "px");
+      textSvg.setAttribute("fill", "white");
+      textSvg.textContent = text;
+
+      this.svgElement.appendChild(textSvg);
   }
 
   undoLastOperation() {
@@ -744,16 +782,17 @@ class ToggleManager {
 }
 
 // Initialize the dialog manager
-function open_dialog_view() {
+function open_dialog_view(name, description) {
     $('#dialog-box-viewer').css('display', "block")
     $('#dialog-box-viewer').css('top', "25%")
     $('#EditBtn').css('display', "inline-block")
     $('#view_mode').css('display', "block")
     $('#submitBtn').css('display', "none")
     $('#edit_mode').css('display', "none")
-    $('#show_name').html($('#name').val())
-    $('#show_description').html($('#summernote').summernote('code'))
+    $('#show_name').html(name)
+    $('#show_description').html(description)
 }
+
 function open_editor_view() {
     $('#dialog-box-viewer').css('display', "block")
     $('#body').css('backgroundColor', "rgba(0, 0, 0, 0.4)")
@@ -762,11 +801,14 @@ function open_editor_view() {
     $('#view_mode').css('display', "none")
     $('#submitBtn').css('display', "inline-block") 
     $('#edit_mode').css('display', "block")
+    $('#show_name').html('')
+    $('#show_description').html('')
 }
 
 class DialogBox {
-  constructor() {
+  constructor(rectangles) {
       // Dialog Box
+      this.rectangles = rectangles
       this.create_description()
       $('#closeBtn, #cancelBtn').click(this.close_editor())
       $('#submitBtn').click(this.submit_button())
@@ -789,7 +831,7 @@ class DialogBox {
   }
 
   close_editor() {
-      return function() {
+      return () =>  {
           $('#body').css('backgroundColor', "white")
           $('#dialog-box-viewer').css('display', "none")
           $('#open-editor-btn').css('display', "inline-block")
@@ -799,26 +841,45 @@ class DialogBox {
   }
 
   open_editor() {
-      return function() {open_editor_view()}
+      return () => {open_editor_view()}
   }
 
   submit_button() {
-      return function() {
-          const name = $('#name').val();
-          const description = $('#summernote').summernote('code');
-          
-          if (name.trim() === '' || description.trim() === '') {
-              alert('Please enter a name and description.');
-              return;
-          }
-          open_dialog_view()
+    return () => {
+      const name = $('#name').val();
+      const description = $('#summernote').summernote('code');
+      
+      if (name.trim() === '' || description.trim() === '') {
+          alert('Please enter a name and description.');
+          return;
       }
+
+      let updated = false
+      for(let [i, rectInfo] of this.rectangles.descriptions.entries()) {
+        if (rectInfo[0] == this.rectangles.selectedRect){
+          rectInfo[1] = [name, description]
+          updated = true
+        }
+
+      }
+
+      if(!updated) {
+        this.rectangles.descriptions.push(
+          [
+            this.rectangles.selectedRect,
+            [name, description]
+          ]
+        )
+      }
+      open_dialog_view(name, description)
+      this.rectangles.update_text(this.rectangles.selectedRect, name)
+    }
   }
 }
 
+
 // Initialize the drawing system
 document.addEventListener('DOMContentLoaded', () => {
-  const dialog = new DialogBox()
   const toggleManager = new ToggleManager();
 
   const screenHeight = window.innerHeight;
@@ -851,5 +912,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   const svgElement = document.getElementById('drawingSvg');
 
-  new RectangleDrawer(app, toggleManager, svgElement);
+  const rectangleD = new RectangleDrawer(app, toggleManager, svgElement);
+
+  const dialog = new DialogBox(rectangleD)
 });
