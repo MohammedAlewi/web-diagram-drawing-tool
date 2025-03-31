@@ -468,6 +468,7 @@ class RectangleDrawer {
       this.rectangles = []; // Store all created rectangles
       this.undoStack = []; // Stack for undo operations
       this.descriptions = descriptions;
+      this.text_rects = []
 
       // Bind methods to ensure correct context
       this.handleMouseDown = this.handleMouseDown.bind(this);
@@ -568,7 +569,6 @@ class RectangleDrawer {
 
     this.selectTXT = e.target;
     this.selectedRectTXT = e.target.closest('rect');
-    console.log(this.selectTXT, this.selectedRectTXT, "====")
     
   
     const rectInfo = this.descriptions.filter(
@@ -595,7 +595,6 @@ class RectangleDrawer {
           this.selectedRect.classList.remove('selected-rect');
       }
       this.selectedRectTXT = rect
-      console.log("(()(())))", rect)
 
       // Select new rectangle
       this.selectedRect = rect;
@@ -701,10 +700,15 @@ class RectangleDrawer {
   }
 
   update_text(rectangle, text = "Double click to edit") {
-    console.log(rectangle, text)
+    const rectInfo = this.text_rects.filter(
+      val => val[0] == rectangle
+    );
+    this.text_rects = this.text_rects.filter(
+      val => val[0] != rectangle
+    );
       // remove exixting one
-      if(this.selectTXT){
-        // this.svgElement.removeChild(this.selectTXT)
+      if(rectInfo.length){
+        this.svgElement.removeChild(rectInfo[0][1])
         // this.selectTXT.setAttribute("fill", rectangle.getAttribute("fill"))
       }
       // Calculate center position
@@ -733,13 +737,11 @@ class RectangleDrawer {
       textSvg.setAttribute("fill", "white");
       textSvg.textContent = text;
 
-      if(this.selectTXT){
-        // this.selectTXT.p
-        this.svgElement.replaceChild(this.selectTXT, textSvg);
-      } else{
-        this.svgElement.appendChild(textSvg);
-      }
-      // 
+ 
+      this.svgElement.appendChild(textSvg);
+      this.text_rects.push(
+        [rectangle, textSvg]
+      )
 
       let textWidth = textSvg.getComputedTextLength();
       centerX = x + Math.max((width - textWidth)/2, 0);
@@ -748,6 +750,7 @@ class RectangleDrawer {
 
       textSvg.setAttribute("x", centerX);
       textSvg.setAttribute("y", centerY);
+
       return true
   }
 
