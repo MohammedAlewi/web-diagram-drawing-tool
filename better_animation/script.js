@@ -476,7 +476,12 @@ class RectangleDrawer {
       this.undoLastOperation = this.undoLastOperation.bind(this);
       this.dialogBox = this.dialogBox.bind(this); 
       this.update_text = this.update_text.bind(this); 
+      this.clear_fakeones = this.clear_fakeones.bind(this); 
       this.initialize();
+  }
+
+  clear_fakeones(){
+    this.SVGLineElement.get
   }
 
   initialize() {
@@ -560,14 +565,14 @@ class RectangleDrawer {
     let name = "";
     let description = "";
 
-    if(e && e.target) {
-      this.selectTXT = e.target.closest('text');
-      this.selectedRect = e.target.closest('rect');
-      console.log(this.selectTXT, this.selectedRect)
-    }
+
+    this.selectTXT = e.target;
+    this.selectedRectTXT = e.target.closest('rect');
+    console.log(this.selectTXT, this.selectedRectTXT, "====")
+    
   
     const rectInfo = this.descriptions.filter(
-      val => val[0] == this.selectedRect
+      val => val[0] == this.selectedRectTXT
     );
 
 
@@ -577,9 +582,9 @@ class RectangleDrawer {
       description = rectInfo[0][1][1]
     }
     
-    if (name && description){
+    if (name && description && this.selectTXT && this.selectedRectTXT){
       open_dialog_view(name, description)
-    } else{
+    } else if (this.selectTXT && this.selectedRectTXT){
       open_editor_view(e)
     }
 
@@ -589,6 +594,8 @@ class RectangleDrawer {
       if (this.selectedRect) {
           this.selectedRect.classList.remove('selected-rect');
       }
+      this.selectedRectTXT = rect
+      console.log("(()(())))", rect)
 
       // Select new rectangle
       this.selectedRect = rect;
@@ -679,10 +686,7 @@ class RectangleDrawer {
 
   stopDrawing(e) {
       if (!this.isDrawing) return;
-      
-      if (this.isDrawing) {
-        this.update_text(this.currentRect)
-      }
+
 
       this.isDrawing = false;
       
@@ -690,18 +694,20 @@ class RectangleDrawer {
       if (parseFloat(this.currentRect.getAttribute('width')) > 0 && 
           parseFloat(this.currentRect.getAttribute('height')) > 0) {
           this.undoStack.push(this.currentRect);
+          this.update_text(this.currentRect)
       }
-
+      
       this.currentRect = null;
   }
 
   update_text(rectangle, text = "Double click to edit") {
+    console.log(rectangle, text)
       // remove exixting one
       if(this.selectTXT){
-        this.svgElement.removeChild(this.selectTXT);
+        // this.svgElement.removeChild(this.selectTXT)
+        // this.selectTXT.setAttribute("fill", rectangle.getAttribute("fill"))
       }
       // Calculate center position
-      rectangle = this.currentRect || this.selectedRect
 
       // if(!rectangle){
       //   return false
@@ -716,7 +722,7 @@ class RectangleDrawer {
       //     Math.max(width / (text.length * 0.7), 12),
       //     this.height / 2
       // );
-      const fontSize = Math.min(Math.max(width / (text.length * 0.7), 12), height /2)
+      let fontSize = Math.min(Math.max(width / (text.length * 0.7), 12), height /2)
       let centerX = x + Math.max((width - text.length * fontSize)/2, width*0.01);
       let centerY = y + height/2 + height* 0.15;
       // Update text
@@ -727,11 +733,19 @@ class RectangleDrawer {
       textSvg.setAttribute("fill", "white");
       textSvg.textContent = text;
 
-      this.svgElement.appendChild(textSvg);
+      if(this.selectTXT){
+        // this.selectTXT.p
+        this.svgElement.replaceChild(this.selectTXT, textSvg);
+      } else{
+        this.svgElement.appendChild(textSvg);
+      }
+      // 
 
       let textWidth = textSvg.getComputedTextLength();
       centerX = x + Math.max((width - textWidth)/2, 0);
       centerY = y + height/2 + height* 0.15;
+      fontSize = Math.min(Math.max(width / (textWidth * 0.7), 12), height /2)
+
       textSvg.setAttribute("x", centerX);
       textSvg.setAttribute("y", centerY);
       return true
@@ -895,7 +909,7 @@ class DialogBox {
           ]
         )
       }
-      let res = this.rectangles.update_text(this.rectangles.selectedRect, name)
+      let res = this.rectangles.update_text(this.rectangles.selectedRectTXT, name)
       open_dialog_view(name, description)
     }
   }
