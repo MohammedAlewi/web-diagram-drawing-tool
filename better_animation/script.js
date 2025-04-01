@@ -736,7 +736,7 @@ class RectangleDrawer {
       let textSvg = document.createElementNS("http://www.w3.org/2000/svg", "text");
       textSvg.setAttribute("x", centerX);
       textSvg.setAttribute("y", centerY);
-      textSvg.setAttribute("font-size", fontSize + "px");
+      textSvg.setAttribute("font-size", fontSize * 0.82 + "px");
       textSvg.setAttribute("fill", "white");
       textSvg.textContent = text;
 
