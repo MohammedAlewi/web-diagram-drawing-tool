@@ -3,364 +3,642 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SVG Path Follower - Stops</title>
-
-    <!-- CSS Styles -->
+    <title>SVG Path Packet Animation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
     <style>
         body {
-            font-family: sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            background-color: #f4f4f4;
+            font-family: Arial, sans-serif;
             margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
         }
-
-        h1 {
-            margin-bottom: 20px;
-            color: #333;
-            text-align: center;
-        }
-
-        .controls {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #fff;
+        
+        .container {
+            background-color: white;
             border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
-
-        .controls button {
-            padding: 8px 15px;
-            font-size: 1em;
+        
+        svg {
+            border: 1px solid #ddd;
+            background-color: white;
+            display: block;
+            margin-bottom: 20px;
+        }
+        
+        #svgPath {
             cursor: pointer;
+            stroke: #333;
+            stroke-width: 3;
+            fill: none;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
             border: none;
             border-radius: 4px;
-            background-color: #007bff;
-            color: white;
-            transition: background-color 0.2s ease;
-        }
-
-        .controls button:hover {
-            background-color: #0056b3;
-        }
-
-        .size-control {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .size-control label {
-            font-weight: bold;
-            color: #555;
-        }
-
-        .size-control input[type="range"] {
             cursor: pointer;
+            font-size: 14px;
         }
-
-        .size-control span {
-            min-width: 25px;
-            text-align: right;
-            font-family: monospace;
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        #startBtn {
+            background-color: #4CAF50;
+        }
+        
+        #pauseBtn {
+            background-color: #ff9800;
+        }
+        
+        #restartBtn {
+            background-color: #2196F3;
+        }
+        
+        .dialog {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            width: 500px;
+            max-width: 90%;
+        }
+        
+        .dialog h2 {
+            margin-top: 0;
             color: #333;
         }
-
-        .svg-container {
-            border: 1px solid #ccc;
-            background-color: #fff; /* Container background is white */
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            max-width: 100%;
+        
+        .form-group {
+            margin-bottom: 15px;
         }
-
-        #motionSvg {
+        
+        label {
             display: block;
-            max-width: 100%;
-            height: auto;
-            background-color: #fff; /* Explicitly set SVG background if needed */
+            margin-bottom: 5px;
+            font-weight: bold;
         }
-
-        /* Style for the visible path */
-        #motionPath {
-             stroke: #4a90e2; /* Changed to a visible blue color */
-             stroke-width: 2;
-             stroke-dasharray: 5 5;
-             fill: none; /* Important: path should not be filled */
+        
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
         }
-
-        #followerRect {
-            transition: width 0.1s linear, height 0.1s linear, x 0.1s linear, y 0.1s linear, opacity 0.3s ease-out;
+        
+        .dialog-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+        }
+        
+        .delete-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
             cursor: pointer;
+        }
+        
+        .delete-btn:hover {
+            background-color: #d32f2f;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 15px;
+        }
+        
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            margin-right: 5px;
+            border-radius: 4px 4px 0 0;
+        }
+        
+        .tab.active {
+            background-color: white;
+            border-bottom: 1px solid white;
+            margin-bottom: -1px;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
         }
     </style>
 </head>
 <body>
-
-    <h1>Rectangle Following SVG Path (Stops)</h1>
-
-    <!-- Controls -->
-    <div class="controls">
-        <button id="togglePause">Pause</button> <!-- Will change text to Restart -->
-        <button id="restartAnim">Restart</button>
-        <div class="size-control">
-            <label for="rectWidth">Width:</label>
-            <input type="range" id="rectWidth" min="10" max="100" value="40">
-            <span id="widthValue">40</span>px
-        </div>
-         <div class="size-control">
-            <label for="rectHeight">Height:</label>
-            <input type="range" id="rectHeight" min="10" max="100" value="20">
-            <span id="heightValue">20</span>px
-        </div>
-    </div>
-
-    <!-- SVG Area -->
-    <div class="svg-container">
-        <svg id="motionSvg" width="600" height="400" viewBox="0 0 600 400">
-            <defs>
-                <!-- Defs can be empty or contain other definitions -->
-            </defs>
-
-            <!-- The motion path, moved OUTSIDE <defs> to be rendered directly -->
-            <path id="motionPath"
-                  d="M 50 200 Q 150 50 300 200 T 550 200 C 580 350, 450 380, 300 300 S 50 250, 50 200 Z"
-                  />
-                  <!-- Styling is applied via CSS -->
-
-            <!-- The rectangle that will follow the path -->
-            <rect id="followerRect"
-                  x="-20"
-                  y="-10"
-                  width="40"
-                  height="20"
-                  fill="dodgerblue"
-                  stroke="black"
-                  stroke-width="1"
-                  style="opacity: 1;" /> <!-- Start visible -->
+    <div class="container">
+        <h1>SVG Path Packet Animation</h1>
+        <p>Double-click on the path to add animated packets</p>
+        
+        <svg id="svg" width="800" height="300" viewBox="0 0 800 300">
+            <!-- Curved path example -->
+            <path id="svgPath" d="M100,150 C250,50 550,250 700,150"></path>
         </svg>
+        
+        <div class="controls">
+            <button id="startBtn" disabled>Start Animation</button>
+            <button id="pauseBtn" disabled>Pause Animation</button>
+            <button id="restartBtn" disabled>Restart Animation</button>
+        </div>
+    </div>
+    
+    <div class="overlay" id="overlay"></div>
+    
+    <div class="dialog" id="dialog">
+        <div class="tabs">
+            <div class="tab active" data-tab="addPacket">Add Packet</div>
+            <div class="tab" data-tab="listPackets">List Packets</div>
+        </div>
+        
+        <div class="tab-content active" id="addPacketTab">
+            <h2>Add Packet</h2>
+            <div class="form-group">
+                <label for="packetId">Packet ID:</label>
+                <input type="text" id="packetId" placeholder="Enter a unique ID">
+            </div>
+            
+            <div class="form-group">
+                <label for="packetColor">Packet Color:</label>
+                <input type="color" id="packetColor" value="#ff0000">
+            </div>
+            
+            <div class="form-group">
+                <label for="packetSize">Packet Size:</label>
+                <input type="number" id="packetSize" min="5" max="50" value="15">
+            </div>
+            
+            <div class="form-group">
+                <label for="packetDirection">Direction:</label>
+                <select id="packetDirection">
+                    <option value="start">Start to End</option>
+                    <option value="end">End to Start</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="animationDuration">Animation Duration (ms):</label>
+                <input type="number" id="animationDuration" min="500" max="10000" value="2000">
+            </div>
+            
+            <div class="form-group">
+                <label for="animationRepeat">Animation Repeat:</label>
+                <select id="animationRepeat">
+                    <option value="1">Once</option>
+                    <option value="-1">Loop Forever</option>
+                    <option value="3">3 Times</option>
+                    <option value="5">5 Times</option>
+                    <option value="10">10 Times</option>
+                </select>
+            </div>
+            
+            <div class="dialog-buttons">
+                <button id="cancelBtn">Cancel</button>
+                <button id="addPacketBtn">Add Packet</button>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="listPacketsTab">
+            <h2>Packet List</h2>
+            <div id="packetTable">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Color</th>
+                            <th>Size</th>
+                            <th>Direction</th>
+                            <th>Duration</th>
+                            <th>Repeat</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="packetTableBody">
+                        <!-- Packets will be listed here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="dialog-buttons">
+                <button id="closeListBtn">Close</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Anime.js CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-
-    <!-- JavaScript Code -->
     <script>
-        class PathFollower {
-            constructor(config) {
-                // --- Element References ---
-                this.svg = document.getElementById(config.svgId);
-                this.path = document.getElementById(config.pathId);
-                this.rect = document.getElementById(config.rectId);
-                this.togglePauseBtn = document.getElementById(config.togglePauseBtnId);
-                this.restartBtn = document.getElementById(config.restartBtnId);
-                this.widthSlider = document.getElementById(config.widthSliderId);
-                this.heightSlider = document.getElementById(config.heightSliderId);
-                this.widthValueSpan = document.getElementById(config.widthValueId);
-                this.heightValueSpan = document.getElementById(config.heightValueId);
-
-                if (!this.svg || !this.path || !this.rect || !this.togglePauseBtn || !this.restartBtn || !this.widthSlider || !this.heightSlider || !this.widthValueSpan || !this.heightValueSpan) {
-                    console.error("One or more elements not found. Check IDs.");
+        class PacketAnimationManager {
+            constructor() {
+                // SVG Elements
+                this.svg = document.getElementById('svg');
+                this.path = document.getElementById('svgPath');
+                this.pathLength = this.path.getTotalLength();
+                
+                // Dialog Elements
+                this.dialog = document.getElementById('dialog');
+                this.overlay = document.getElementById('overlay');
+                
+                // Form Elements
+                this.packetIdInput = document.getElementById('packetId');
+                this.packetColorInput = document.getElementById('packetColor');
+                this.packetSizeInput = document.getElementById('packetSize');
+                this.packetDirectionInput = document.getElementById('packetDirection');
+                this.animationDurationInput = document.getElementById('animationDuration');
+                this.animationRepeatInput = document.getElementById('animationRepeat');
+                
+                // Buttons
+                this.startBtn = document.getElementById('startBtn');
+                this.pauseBtn = document.getElementById('pauseBtn');
+                this.restartBtn = document.getElementById('restartBtn');
+                this.cancelBtn = document.getElementById('cancelBtn');
+                this.addPacketBtn = document.getElementById('addPacketBtn');
+                this.closeListBtn = document.getElementById('closeListBtn');
+                
+                // Tabs
+                this.tabs = document.querySelectorAll('.tab');
+                this.tabContents = document.querySelectorAll('.tab-content');
+                
+                // Table
+                this.packetTableBody = document.getElementById('packetTableBody');
+                
+                // State variables
+                this.packets = [];
+                this.animationState = 'stopped'; // 'running', 'paused', 'stopped'
+                
+                // Initialize
+                this.bindEvents();
+            }
+            
+            bindEvents() {
+                // Path double-click event
+                this.path.addEventListener('dblclick', () => this.openDialog());
+                
+                // Button events
+                this.startBtn.addEventListener('click', () => this.startAnimation());
+                this.pauseBtn.addEventListener('click', () => this.pauseAnimation());
+                this.restartBtn.addEventListener('click', () => this.restartAnimation());
+                this.cancelBtn.addEventListener('click', () => this.closeDialog());
+                this.addPacketBtn.addEventListener('click', () => this.addPacket());
+                this.closeListBtn.addEventListener('click', () => this.closeDialog());
+                
+                // Tab events
+                this.tabs.forEach(tab => {
+                    tab.addEventListener('click', (e) => this.switchTab(e.target.dataset.tab));
+                });
+                
+                // Close dialog when clicking overlay
+                this.overlay.addEventListener('click', () => this.closeDialog());
+            }
+            
+            openDialog() {
+                this.dialog.style.display = 'block';
+                this.overlay.style.display = 'block';
+                this.updatePacketTable();
+            }
+            
+            closeDialog() {
+                this.dialog.style.display = 'none';
+                this.overlay.style.display = 'none';
+            }
+            
+            switchTab(tabId) {
+                // Update tab active state
+                this.tabs.forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.tab === tabId);
+                });
+                
+                // Update tab content visibility
+                this.tabContents.forEach(content => {
+                    content.classList.toggle('active', content.id === tabId + 'Tab');
+                });
+                
+                if (tabId === 'listPackets') {
+                    this.updatePacketTable();
+                }
+            }
+            
+            updatePacketTable() {
+                this.packetTableBody.innerHTML = '';
+                
+                if (this.packets.length === 0) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = '<td colspan="7" style="text-align: center;">No packets added yet</td>';
+                    this.packetTableBody.appendChild(row);
                     return;
                 }
-
-                // --- State ---
-                this.isPaused = false;
-                this.isCompleted = false; // Track if the single run is complete
-                this.animation = null;
-
-                // --- Initialization ---
-                this._setInitialRectSize();
-                this._createAnimation();
-                this._setupEventListeners();
-            }
-
-            _setInitialRectSize() {
-                const initialWidth = parseFloat(this.widthSlider.value);
-                const initialHeight = parseFloat(this.heightSlider.value);
-                this.updateWidth(initialWidth);
-                this.updateHeight(initialHeight);
-                this.widthValueSpan.textContent = initialWidth;
-                this.heightValueSpan.textContent = initialHeight;
-            }
-
-            _createAnimation() {
-                const pathMotion = anime.path(this.path);
-
-                if (this.animation) {
-                    anime.remove(this.rect);
-                }
-
-                this.animation = anime({
-                    targets: this.rect,
-                    translateX: pathMotion('x'),
-                    translateY: pathMotion('y'),
-                    rotate: pathMotion('angle'),
-                    easing: 'linear',
-                    duration: 5000,
-                    loop: false, // *** CHANGED: Run only once ***
-                    autoplay: true,
-                    begin: (anim) => { // Runs at the very start of the animation
-                        console.log("Animation beginning");
-                        this.rect.style.opacity = 1; // Make sure it's visible
-                        this.isPaused = false;
-                        this.isCompleted = false; // Reset completed state on start/restart
-                        this.togglePauseBtn.disabled = false; // Enable pause button
-                        this.togglePauseBtn.textContent = 'Pause';
-                    },
-                    complete: (anim) => { // *** CHANGED: Runs only when loop: false and animation finishes ***
-                        console.log("Animation fully complete");
-                         this.isCompleted = true;
-                         this.isPaused = true; // Treat as paused/stopped at the end
-                         this.rect.style.opacity = 0; // Hide rectangle after completion
-                         this.togglePauseBtn.textContent = 'Restart'; // Change button text
-                         this.togglePauseBtn.disabled = false; // Keep button enabled for restart
+                
+                this.packets.forEach((packet, index) => {
+                    const row = document.createElement('tr');
+                    
+                    // Format the repeat display
+                    let repeatText;
+                    if (packet.repeat === -1) {
+                        repeatText = 'Loop';
+                    } else if (packet.repeat === 1) {
+                        repeatText = 'Once';
+                    } else {
+                        repeatText = `${packet.repeat} Times`;
                     }
-                    // Removed loopComplete callback as loop is false
+                    
+                    row.innerHTML = `
+                        <td>${packet.id}</td>
+                        <td style="background-color: ${packet.color}; color: ${this.getContrastColor(packet.color)}">${packet.color}</td>
+                        <td>${packet.size}px</td>
+                        <td>${packet.direction === 'start' ? 'Start to End' : 'End to Start'}</td>
+                        <td>${packet.duration}ms</td>
+                        <td>${repeatText}</td>
+                        <td>
+                            <button class="delete-btn" data-index="${index}">Delete</button>
+                        </td>
+                    `;
+                    this.packetTableBody.appendChild(row);
                 });
-
-                this.isPaused = !this.animation.autoplay;
-                this.togglePauseBtn.textContent = this.isPaused ? 'Play' : 'Pause';
-                if(this.animation.autoplay) {
-                     this.rect.style.opacity = 1;
-                } else {
-                    // If not autoplaying, it's initially paused and potentially completed (if run before)
-                    // Let's assume it starts fresh, so not completed yet if not autoplaying
-                     this.isCompleted = false;
-                     this.rect.style.opacity = 1; // Show if paused at start
-                }
-            }
-
-            _setupEventListeners() {
-                this.togglePauseBtn.addEventListener('click', this.togglePause.bind(this));
-                this.restartBtn.addEventListener('click', this.restart.bind(this));
-                this.rect.addEventListener('click', this.handleRectClick.bind(this));
-                this.widthSlider.addEventListener('input', (e) => {
-                    const newWidth = parseFloat(e.target.value);
-                    this.updateWidth(newWidth);
-                    this.widthValueSpan.textContent = newWidth;
-                });
-                this.heightSlider.addEventListener('input', (e) => {
-                    const newHeight = parseFloat(e.target.value);
-                    this.updateHeight(newHeight);
-                    this.heightValueSpan.textContent = newHeight;
+                
+                // Add event listeners to delete buttons
+                const deleteButtons = document.querySelectorAll('.delete-btn');
+                deleteButtons.forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const index = parseInt(e.target.dataset.index);
+                        this.deletePacket(index);
+                    });
                 });
             }
-
-            // --- Control Methods ---
-
-            togglePause() {
-                if (!this.animation) return;
-
-                // If completed, pressing the button (now saying 'Restart') should restart
-                if (this.isCompleted) {
-                    this.restart();
+            
+            getContrastColor(hexColor) {
+                // Convert hex to RGB
+                const r = parseInt(hexColor.substr(1, 2), 16);
+                const g = parseInt(hexColor.substr(3, 2), 16);
+                const b = parseInt(hexColor.substr(5, 2), 16);
+                
+                // Calculate luminance using ITU-R BT.709
+                const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+                
+                // Return black or white depending on luminance
+                return luminance > 0.5 ? '#000000' : '#ffffff';
+            }
+            
+            addPacket() {
+                const id = this.packetIdInput.value.trim();
+                const color = this.packetColorInput.value;
+                const size = parseInt(this.packetSizeInput.value);
+                const direction = this.packetDirectionInput.value;
+                const duration = parseInt(this.animationDurationInput.value);
+                const repeat = parseInt(this.animationRepeatInput.value);
+                
+                // Validate input
+                if (!id) {
+                    alert('Please enter a Packet ID');
                     return;
                 }
-
-                // Otherwise, toggle pause/play
-                if (this.isPaused) {
-                    this.animation.play();
-                    this.togglePauseBtn.textContent = 'Pause';
-                    this.rect.style.opacity = 1; // Ensure visible when playing
-                } else {
-                    this.animation.pause();
-                    this.togglePauseBtn.textContent = 'Play';
-                    // Don't change opacity on pause
+                
+                // Check for duplicate ID
+                if (this.packets.some(packet => packet.id === id)) {
+                    alert('Packet ID already exists. Please use a unique ID.');
+                    return;
                 }
-                this.isPaused = !this.isPaused;
-                 this.togglePauseBtn.disabled = false; // Ensure enabled
-                console.log("Animation paused:", this.isPaused);
+                
+                // Create packet object
+                const packet = {
+                    id,
+                    color,
+                    size,
+                    direction,
+                    duration,
+                    repeat,
+                    element: null,
+                    animation: null,
+                    state: 'stopped'
+                };
+                
+                // Create SVG element for the packet
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('id', `packet-${id}`);
+                rect.setAttribute('width', size);
+                rect.setAttribute('height', size);
+                rect.setAttribute('fill', color);
+                rect.setAttribute('visibility', 'hidden'); // Hidden initially
+                
+                // Position at start or end of path
+                const pathPoint = direction === 'start' ? 
+                    this.path.getPointAtLength(0) : 
+                    this.path.getPointAtLength(this.pathLength);
+                
+                rect.setAttribute('x', pathPoint.x - size / 2);
+                rect.setAttribute('y', pathPoint.y - size / 2);
+                
+                // Add to SVG
+                this.svg.appendChild(rect);
+                
+                // Store the element reference
+                packet.element = rect;
+                
+                // Create animation using anime.js motion path
+                this.createPathAnimation(packet);
+                
+                // Add to packets array
+                this.packets.push(packet);
+                
+                // Update buttons
+                this.startBtn.disabled = false;
+                
+                // Reset form
+                this.packetIdInput.value = '';
+                
+                // Close dialog
+                this.closeDialog();
             }
-
-            restart() {
-                if (!this.animation) return;
-
-                console.log("Animation restarting");
-                this.rect.style.opacity = 1; // Make visible before restarting
-                this.isCompleted = false;
-                this.isPaused = false;
-                this.togglePauseBtn.disabled = false; // Ensure pause is enabled
-                this.togglePauseBtn.textContent = 'Pause'; // Reset button text
-                this.animation.restart(); // Restart the animation from the beginning
+            
+            createPathAnimation(packet) {
+                const pathNode = this.path;
+                const rect = packet.element;
+                const size = packet.size;
+                const duration = packet.duration;
+                const direction = packet.direction;
+                const repeat = packet.repeat;
+                
+                // Create SVG points for motion
+                const pathLength = this.pathLength;
+                let motionPath = [];
+                
+                // Create points along the path for animation
+                const numPoints = 100; // More points = smoother animation
+                for (let i = 0; i <= numPoints; i++) {
+                    const point = pathNode.getPointAtLength(
+                        direction === 'start' ? 
+                            (i / numPoints) * pathLength : 
+                            (1 - (i / numPoints)) * pathLength
+                    );
+                    motionPath.push({ x: point.x - size / 2, y: point.y - size / 2 });
+                }
+                
+                // Create the animation
+                const animation = anime({
+                    targets: rect,
+                    translateX: 0, // Reset any previous translations
+                    translateY: 0,
+                    x: motionPath.map(p => p.x),
+                    y: motionPath.map(p => p.y),
+                    duration: duration,
+                    easing: 'linear',
+                    autoplay: false,
+                    loop: repeat,
+                    begin: () => {
+                        rect.setAttribute('visibility', 'visible');
+                    },
+                    complete: () => {
+                        rect.setAttribute('visibility', 'hidden');
+                        packet.state = 'stopped';
+                        this.checkAllAnimationsComplete();
+                    }
+                });
+                
+                packet.animation = animation;
             }
-
-            handleRectClick() {
-                if (!this.animation) return;
-                console.log("Rectangle clicked");
-                // If completed (and hidden), clicking does nothing useful unless we restart
-                // Let's make clicking restart it if completed
-                if (this.isCompleted) {
-                   console.log("Restarting via click on completed area");
-                   this.restart();
-                } else {
-                    this.togglePause(); // Otherwise, just toggle pause/play
+            
+            deletePacket(index) {
+                const packet = this.packets[index];
+                
+                // Remove SVG element
+                if (packet.element) {
+                    this.svg.removeChild(packet.element);
+                }
+                
+                // Remove from packets array
+                this.packets.splice(index, 1);
+                
+                // Update UI
+                this.updatePacketTable();
+                
+                // Update buttons
+                if (this.packets.length === 0) {
+                    this.startBtn.disabled = true;
+                    this.pauseBtn.disabled = true;
+                    this.restartBtn.disabled = true;
+                    this.animationState = 'stopped';
                 }
             }
-
-            updateWidth(newWidth) {
-                this.rect.setAttribute('width', newWidth);
-                this.rect.setAttribute('x', -newWidth / 2);
+            
+            startAnimation() {
+                if (this.animationState === 'running') return;
+                
+                this.packets.forEach(packet => {
+                    if (packet.state !== 'running') {
+                        packet.animation.play();
+                        packet.state = 'running';
+                    }
+                });
+                
+                this.animationState = 'running';
+                this.startBtn.disabled = true;
+                this.pauseBtn.disabled = false;
+                this.restartBtn.disabled = false;
             }
-
-            updateHeight(newHeight) {
-                this.rect.setAttribute('height', newHeight);
-                this.rect.setAttribute('y', -newHeight / 2);
+            
+            pauseAnimation() {
+                if (this.animationState !== 'running') return;
+                
+                this.packets.forEach(packet => {
+                    if (packet.state === 'running') {
+                        packet.animation.pause();
+                        packet.state = 'paused';
+                    }
+                });
+                
+                this.animationState = 'paused';
+                this.startBtn.disabled = false;
+                this.pauseBtn.disabled = true;
+            }
+            
+            restartAnimation() {
+                this.packets.forEach(packet => {
+                    packet.animation.restart();
+                    packet.state = 'running';
+                });
+                
+                this.animationState = 'running';
+                this.startBtn.disabled = true;
+                this.pauseBtn.disabled = false;
+            }
+            
+            checkAllAnimationsComplete() {
+                const allStopped = this.packets.every(packet => packet.state === 'stopped');
+                
+                if (allStopped) {
+                    this.animationState = 'stopped';
+                    this.startBtn.disabled = false;
+                    this.pauseBtn.disabled = true;
+                    this.restartBtn.disabled = false;
+                }
             }
         }
-
-        // --- Initialize after DOM is loaded ---
-        let pathFollowerInstance = null;
-
+        
+        // Initialize when the DOM is fully loaded
         document.addEventListener('DOMContentLoaded', () => {
-            pathFollowerInstance = new PathFollower({
-                svgId: 'motionSvg',
-                pathId: 'motionPath',
-                rectId: 'followerRect',
-                togglePauseBtnId: 'togglePause',
-                restartBtnId: 'restartAnim',
-                widthSliderId: 'rectWidth',
-                heightSliderId: 'rectHeight',
-                widthValueId: 'widthValue',
-                heightValueId: 'heightValue'
-            });
+            const packetManager = new PacketAnimationManager();
         });
-
-        // --- Watcher Function ---
-        function watchFollowerState() {
-            if (pathFollowerInstance && pathFollowerInstance.animation) {
-                let stateMessage = 'Initializing...';
-                 // Check completion status FIRST
-                if(pathFollowerInstance.isCompleted) {
-                     stateMessage = 'Completed (Hidden & Stopped)';
-                } else if (pathFollowerInstance.isPaused) {
-                    stateMessage = 'Paused';
-                } else if (!pathFollowerInstance.animation.paused) { // Check animation state directly too
-                     stateMessage = 'Running';
-                } else {
-                     stateMessage = 'Starting/Unknown'; // Fallback
-                }
-
-                console.log(
-                    `Watcher -> Status: ${stateMessage} | Paused Flag: ${pathFollowerInstance.isPaused} | Completed Flag: ${pathFollowerInstance.isCompleted}`
-                );
-            } else {
-                console.log("Watcher -> PathFollower instance not ready yet.");
-            }
-        }
-
-        setTimeout(() => {
-             setInterval(watchFollowerState, 3000);
-             console.log("Watcher started.");
-        }, 500);
-
     </script>
-
 </body>
 </html>

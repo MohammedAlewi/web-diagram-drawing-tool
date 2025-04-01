@@ -9,10 +9,11 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-bs5.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-bs5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body style="margin: 0px;">
-  <!-- DIALOG BLOX START -->
+  <!-- DIALOG BLOX START Component -->
   <div class="dialog-container" id="dialog-box-viewer">
       <div class="dialog-body" id="view_mode">
           <h1><div id="show_name"></div></h1>
@@ -38,52 +39,136 @@
       </div>
   </div>
   <!-- DIALOG BLOX END -->
+  <!-- <svg id="svg" width="800" height="300" viewBox="0 0 800 300">
+      <line id="svgLine" x1="100" y1="150" x2="700" y2="150"></line>
+  </svg> -->
+  <!-- Dialog box packet start-->
+  <div class="overlay" id="overlay"></div>
+  <div class="dialog" id="dialog">
+      <div class="tabs">
+          <div class="tab active" data-tab="addPacket">Add Packet</div>
+          <div class="tab" data-tab="listPackets">List Packets</div>
+      </div>
+      
+      <div class="tab-content active" id="addPacketTab">
+          <h2>Add Packet</h2>
+          <div class="form-group">
+              <label for="packetId">Packet ID:</label>
+              <input type="text" id="packetId" placeholder="Enter a unique ID">
+          </div>
+          
+          <div class="form-group">
+              <label for="packetColor">Packet Color:</label>
+              <input type="color" id="packetColor" value="#ff0000">
+          </div>
+          
+          <div class="form-group">
+              <label for="packetSize">Packet Size:</label>
+              <input type="number" id="packetSize" min="5" max="50" value="15">
+          </div>
+          
+          <div class="form-group">
+              <label for="packetDirection">Direction:</label>
+              <select id="packetDirection">
+                  <option value="start">Start to End</option>
+                  <option value="end">End to Start</option>
+              </select>
+          </div>
+          
+          <div class="form-group">
+              <label for="animationDuration">Animation Duration (ms):</label>
+              <input type="number" id="animationDuration" min="500" max="10000" value="2000">
+          </div>
+        
+          <div class="form-group">
+              <label for="animationRepeat">Animation Repeat:</label>
+              <select id="animationRepeat">
+                  <option value="1">Once</option>
+                  <option value="-1">Loop Forever</option>
+                  <option value="3">3 Times</option>
+                  <option value="5">5 Times</option>
+                  <option value="10">10 Times</option>
+              </select>
+          </div>
+
+          <div class="dialog-buttons">
+              <button id="cancelBtn">Cancel</button>
+              <button id="addPacketBtn">Add Packet</button>
+          </div>
+      </div>
+      
+      <div class="tab-content" id="listPacketsTab">
+          <h2>Packet List</h2>
+          <div id="packetTable">
+              <table>
+                  <thead>
+                      <tr>
+                          <th>ID</th>
+                          <th>Color</th>
+                          <th>Size</th>
+                          <th>Direction</th>
+                          <th>Duration</th>
+                          <th>Repeat</th>
+                          <th>Action</th>
+                      </tr>
+                  </thead>
+                  <tbody id="packetTableBody">
+                      <!-- Packets will be listed here -->
+                  </tbody>
+              </table>
+          </div>
+          
+          <div class="dialog-buttons">
+              <button id="closeListBtn">Close</button>
+          </div>
+      </div>
+  </div>
+  <!-- Dialog box packet end-->
+
   <div class="container" style="padding: 0px; width: 100%;">
 
-        <div class="controls" style="margin:0px; width: 109.5%;">
+        <div class="controls" style="margin:0px; width: 109.5%; ">
             <h1>Drawing Tool</h1>
-          <div class="control-group">
+          <div class="control-group"  style="display: inline-block;">
             <label for="lineColor">Line Color:</label>
             <input type="color" id="lineColor" value="#3367d6">
           </div>
-          <div class="control-group">
+          <div class="control-group"  style="display: inline-block;">
             <label for="lineThickness">Line Thickness:</label>
             <input type="range" id="lineThickness" min="1" max="10" value="3">
             <span id="thicknessValue">3px</span>
-
-
           </div>
-          <div class="checkbox-group">
+          <div class="checkbox-group"  style="display: inline-block;">
             <input type="checkbox" id="dashedLine">
             <label for="dashedLine">Dashed Line</label>
         </div>
-          <div class="control-group">
+          <div class="control-group"  style="display: inline-block;">
             <label for="gridSize">Grid Size:</label>
             <input type="range" id="gridSize" min="10" max="50" value="30">
             <span id="gridSizeValue">30px</span>
           </div>
 
-          <div class="control-group" id="dashSettingsGroup" style="display: none;">
+          <div class="control-group" id="dashSettingsGroup"  style="display: inline-block;">
             <label for="dashArray">Dash Pattern:</label>
             <input type="range" id="dashArray" min="1" max="20" value="5">
             <span id="dashArrayValue">5px</span>
           </div>
-          <div class="button-group">
+          <div class="button-group"  style="display: inline-block;">
             <button id="undoButton">Undo</button>
             <button id="clearButton">Clear All</button>
             <button id="getPathsButton">Get SVG Paths</button>
           </div>
-          <div class="control-group">
-            <input type="color" id="bgColorPicker" value="#ff0000">
+          <div class="control-group" style="display: inline-block;">
+            <input type="color" id="bgColorPicker" value="#ff0000" >
             <input type="color" id="borderColorPicker" value="#000000">
           </div>
-          <div class="control-group">
-            <label>Box Border Radius: 
-                <input type="range" id="borderRadiusSlider" min="0" max="100" value="0">
+          <div class="control-group" style="display: inline-block;">
+            <label style="display: inline-block;">Box Border Radius: 
+                <input type="range" id="borderRadiusSlider" min="0" max="100" value="0" style="display: inline-block;">
                 <span id="borderRadiusValue">0</span>
             </label>
-            <label>Box Border Thickness: 
-                <input type="range" id="borderThicknessSlider" min="1" max="10" value="2">
+            <label style="display: inline-block;">Box Border Thickness: 
+                <input type="range" id="borderThicknessSlider" min="1" max="10" value="2" style="display: inline-block;">
                 <span id="borderThicknessValue">2</span>
             </label>
           </div>
@@ -92,7 +177,12 @@
                 <button class="toggle-btn active" data-type="box">Box</button>
                 <button class="toggle-btn" data-type="line">Line</button>
             </div>
-        </div>
+          </div>
+          <div class="control-group" style="display: inline-block;">
+            <button id="startBtn" disabled>Start Animation</button>
+            <button id="pauseBtn" disabled>Pause Animation</button>
+            <button id="restartBtn" disabled>Restart Animation</button>
+          </div>
         </div>
         <pre id="pathOutput" style="display: none; background: #f5f5f5; padding: 10px; border-radius: 4px; overflow: auto; max-height: 200px;"></pre>
 

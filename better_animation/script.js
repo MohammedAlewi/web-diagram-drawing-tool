@@ -11,6 +11,7 @@
    */
   constructor(config) {
     // DOM Elements
+    this.packetManager = config.packetManager
     this.toggleManager = config.toggleManager
     this.svgElement = config.svgElement;
     this.controls = {
@@ -325,6 +326,8 @@
       // Add the path to history
       this.pathHistory.push(this.currentPath);
       
+      this.currentPath.addEventListener('dblclick', (e) => this.packetManager.openDialog(e));
+
       // Enable undo button if there are paths
       // this.controls.undoButton.disabled = false;
     }
@@ -918,8 +921,359 @@ class DialogBox {
   }
 }
 
+// Packet Management
+
+class PacketAnimationManager {
+  constructor() {
+      // SVG Elements
+      this.svg = document.getElementById('drawingSvg');
+      // this.path = document.getElementById('svgPath');
+      // this.pathLength = this.path.getTotalLength();
+      
+      // Dialog Elements
+      this.dialog = document.getElementById('dialog');
+      this.overlay = document.getElementById('overlay');
+      
+      // Form Elements
+      this.packetIdInput = document.getElementById('packetId');
+      this.packetColorInput = document.getElementById('packetColor');
+      this.packetSizeInput = document.getElementById('packetSize');
+      this.packetDirectionInput = document.getElementById('packetDirection');
+      this.animationDurationInput = document.getElementById('animationDuration');
+      this.animationRepeatInput = document.getElementById('animationRepeat');
+      
+      // Buttons
+      this.startBtn = document.getElementById('startBtn');
+      this.pauseBtn = document.getElementById('pauseBtn');
+      this.restartBtn = document.getElementById('restartBtn');
+      this.cancelBtn = document.getElementById('cancelBtn');
+      this.addPacketBtn = document.getElementById('addPacketBtn');
+      this.closeListBtn = document.getElementById('closeListBtn');
+      
+      // Tabs
+      this.tabs = document.querySelectorAll('.tab');
+      this.tabContents = document.querySelectorAll('.tab-content');
+      
+      // Table
+      this.packetTableBody = document.getElementById('packetTableBody');
+      
+      // State variables
+      this.packets = [];
+      this.animationState = 'stopped'; // 'running', 'paused', 'stopped'
+      
+      // Initialize
+      this.bindEvents();
+  }
+  
+  bindEvents() {
+      // Path double-click event
+      // this.path.addEventListener('dblclick', () => this.openDialog());
+      
+      // Button events
+      this.startBtn.addEventListener('click', () => this.startAnimation());
+      this.pauseBtn.addEventListener('click', () => this.pauseAnimation());
+      this.restartBtn.addEventListener('click', () => this.restartAnimation());
+      this.cancelBtn.addEventListener('click', () => this.closeDialog());
+      this.addPacketBtn.addEventListener('click', () => this.addPacket());
+      this.closeListBtn.addEventListener('click', () => this.closeDialog());
+      
+      // Tab events
+      this.tabs.forEach(tab => {
+          tab.addEventListener('click', (e) => this.switchTab(e.target.dataset.tab));
+      });
+      
+      // Close dialog when clicking overlay
+      this.overlay.addEventListener('click', () => this.closeDialog());
+  }
+  
+  openDialog(e) {
+      this.path = e.target
+      this.pathLength = this.path.getTotalLength();
+      this.dialog.style.display = 'block';
+      this.overlay.style.display = 'block';
+      this.updatePacketTable();
+  }
+  
+  closeDialog() {
+      this.dialog.style.display = 'none';
+      this.overlay.style.display = 'none';
+  }
+  
+  switchTab(tabId) {
+      // Update tab active state
+      this.tabs.forEach(tab => {
+          tab.classList.toggle('active', tab.dataset.tab === tabId);
+      });
+      
+      // Update tab content visibility
+      this.tabContents.forEach(content => {
+          content.classList.toggle('active', content.id === tabId + 'Tab');
+      });
+      
+      if (tabId === 'listPackets') {
+          this.updatePacketTable();
+      }
+  }
+  
+  updatePacketTable() {
+      this.packetTableBody.innerHTML = '';
+      
+      if (this.packets.length === 0) {
+          const row = document.createElement('tr');
+          row.innerHTML = '<td colspan="7" style="text-align: center;">No packets added yet</td>';
+          this.packetTableBody.appendChild(row);
+          return;
+      }
+      
+      this.packets.forEach((packet, index) => {
+          const row = document.createElement('tr');
+          
+          // Format the repeat display
+          let repeatText;
+          if (packet.repeat === -1) {
+              repeatText = 'Loop';
+          } else if (packet.repeat === 1) {
+              repeatText = 'Once';
+          } else {
+              repeatText = `${packet.repeat} Times`;
+          }
+          
+          row.innerHTML = `
+              <td>${packet.id}</td>
+              <td style="background-color: ${packet.color}; color: ${this.getContrastColor(packet.color)}">${packet.color}</td>
+              <td>${packet.size}px</td>
+              <td>${packet.direction === 'start' ? 'Start to End' : 'End to Start'}</td>
+              <td>${packet.duration}ms</td>
+              <td>${repeatText}</td>
+              <td>
+                  <button class="delete-btn" data-index="${index}">Delete</button>
+              </td>
+          `;
+          this.packetTableBody.appendChild(row);
+      });
+      
+      // Add event listeners to delete buttons
+      const deleteButtons = document.querySelectorAll('.delete-btn');
+      deleteButtons.forEach(button => {
+          button.addEventListener('click', (e) => {
+              const index = parseInt(e.target.dataset.index);
+              this.deletePacket(index);
+          });
+      });
+  }
+  
+  getContrastColor(hexColor) {
+      // Convert hex to RGB
+      const r = parseInt(hexColor.substr(1, 2), 16);
+      const g = parseInt(hexColor.substr(3, 2), 16);
+      const b = parseInt(hexColor.substr(5, 2), 16);
+      
+      // Calculate luminance using ITU-R BT.709
+      const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+      
+      // Return black or white depending on luminance
+      return luminance > 0.5 ? '#000000' : '#ffffff';
+  }
+  
+  addPacket() {
+      const id = this.packetIdInput.value.trim();
+      const color = this.packetColorInput.value;
+      const size = parseInt(this.packetSizeInput.value);
+      const direction = this.packetDirectionInput.value;
+      const duration = parseInt(this.animationDurationInput.value);
+      const repeat = parseInt(this.animationRepeatInput.value);
+      
+      // Validate input
+      if (!id) {
+          alert('Please enter a Packet ID');
+          return;
+      }
+      
+      // Check for duplicate ID
+      if (this.packets.some(packet => packet.id === id)) {
+          alert('Packet ID already exists. Please use a unique ID.');
+          return;
+      }
+      
+      // Create packet object
+      const packet = {
+          id,
+          color,
+          size,
+          direction,
+          duration,
+          repeat,
+          element: null,
+          animation: null,
+          state: 'stopped'
+      };
+      
+      // Create SVG element for the packet
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('id', `packet-${id}`);
+      rect.setAttribute('width', size);
+      rect.setAttribute('height', size);
+      rect.setAttribute('fill', color);
+      rect.setAttribute('visibility', 'hidden'); // Hidden initially
+      
+      // Position at start or end of path
+      const pathPoint = direction === 'start' ? 
+          this.path.getPointAtLength(0) : 
+          this.path.getPointAtLength(this.pathLength);
+      
+      rect.setAttribute('x', pathPoint.x - size / 2);
+      rect.setAttribute('y', pathPoint.y - size / 2);
+      
+      // Add to SVG
+      this.svg.appendChild(rect);
+      
+      // Store the element reference
+      packet.element = rect;
+      
+      // Create animation using anime.js motion path
+      this.createPathAnimation(packet);
+      
+      // Add to packets array
+      this.packets.push(packet);
+      
+      // Update buttons
+      this.startBtn.disabled = false;
+      
+      // Reset form
+      this.packetIdInput.value = '';
+      
+      // Close dialog
+      this.closeDialog();
+  }
+  
+  createPathAnimation(packet) {
+      const pathNode = this.path;
+      const rect = packet.element;
+      const size = packet.size;
+      const duration = packet.duration;
+      const direction = packet.direction;
+      const repeat = packet.repeat;
+      
+      // Create SVG points for motion
+      const pathLength = this.pathLength;
+      let motionPath = [];
+      
+      // Create points along the path for animation
+      const numPoints = 100; // More points = smoother animation
+      for (let i = 0; i <= numPoints; i++) {
+          const point = pathNode.getPointAtLength(
+              direction === 'start' ? 
+                  (i / numPoints) * pathLength : 
+                  (1 - (i / numPoints)) * pathLength
+          );
+          motionPath.push({ x: point.x - size / 2, y: point.y - size / 2 });
+      }
+      
+      // Create the animation
+      const animation = anime({
+          targets: rect,
+          translateX: 0, // Reset any previous translations
+          translateY: 0,
+          x: motionPath.map(p => p.x),
+          y: motionPath.map(p => p.y),
+          duration: duration,
+          easing: 'linear',
+          autoplay: false,
+          loop: repeat,
+          begin: () => {
+              rect.setAttribute('visibility', 'visible');
+          },
+          complete: () => {
+              rect.setAttribute('visibility', 'hidden');
+              packet.state = 'stopped';
+              this.checkAllAnimationsComplete();
+          }
+      });
+      
+      packet.animation = animation;
+  }
+  
+  deletePacket(index) {
+      const packet = this.packets[index];
+      
+      // Remove SVG element
+      if (packet.element) {
+          this.svg.removeChild(packet.element);
+      }
+      
+      // Remove from packets array
+      this.packets.splice(index, 1);
+      
+      // Update UI
+      this.updatePacketTable();
+      
+      // Update buttons
+      if (this.packets.length === 0) {
+          this.startBtn.disabled = true;
+          this.pauseBtn.disabled = true;
+          this.restartBtn.disabled = true;
+          this.animationState = 'stopped';
+      }
+  }
+  
+  startAnimation() {
+      if (this.animationState === 'running') return;
+      
+      this.packets.forEach(packet => {
+          if (packet.state !== 'running') {
+              packet.animation.play();
+              packet.state = 'running';
+          }
+      });
+      
+      this.animationState = 'running';
+      this.startBtn.disabled = true;
+      this.pauseBtn.disabled = false;
+      this.restartBtn.disabled = false;
+  }
+  
+  pauseAnimation() {
+      if (this.animationState !== 'running') return;
+      
+      this.packets.forEach(packet => {
+          if (packet.state === 'running') {
+              packet.animation.pause();
+              packet.state = 'paused';
+          }
+      });
+      
+      this.animationState = 'paused';
+      this.startBtn.disabled = false;
+      this.pauseBtn.disabled = true;
+  }
+  
+  restartAnimation() {
+      this.packets.forEach(packet => {
+          packet.animation.restart();
+          packet.state = 'running';
+      });
+      
+      this.animationState = 'running';
+      this.startBtn.disabled = true;
+      this.pauseBtn.disabled = false;
+  }
+  
+  checkAllAnimationsComplete() {
+      const allStopped = this.packets.every(packet => packet.state === 'stopped');
+      
+      if (allStopped) {
+          this.animationState = 'stopped';
+          this.startBtn.disabled = false;
+          this.pauseBtn.disabled = true;
+          this.restartBtn.disabled = false;
+      }
+  }
+}
+
+
 // Initialize the drawing system
 document.addEventListener('DOMContentLoaded', () => {
+  const packetManager = new PacketAnimationManager();
   const toggleManager = new ToggleManager();
 
   const screenHeight = window.innerHeight;
@@ -929,6 +1283,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let height = screenHeight - Math.ceil(screenHeight * 0.25);
 
   const app = new GridDrawingApp({
+    packetManager: packetManager,
     toggleManager: toggleManager,
     svgElement: document.getElementById('drawingSvg'),
     width: width,
