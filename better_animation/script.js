@@ -640,9 +640,6 @@ class RectangleDrawer {
       rect.remove();
     });
     
-    // Clear history and disable undo button
-    // this.pathHistory = [];
-    // this.controls.undoButton.disabled = true;
   }
   
   startDrawing(e) {
@@ -712,23 +709,15 @@ class RectangleDrawer {
       // remove exixting one
       if(rectInfo.length){
         this.svgElement.removeChild(rectInfo[0][1])
-        // this.selectTXT.setAttribute("fill", rectangle.getAttribute("fill"))
       }
       // Calculate center position
 
-      // if(!rectangle){
-      //   return false
-      // }
       const x = Number(rectangle.getAttribute("x"))
       const y = Number(rectangle.getAttribute("y"))
       const width = Number(rectangle.getAttribute("width"))
       const height = Number(rectangle.getAttribute("height"))
  
       // Calculate appropriate font size (simpler approach)
-      // const fontSize = Math.min(
-      //     Math.max(width / (text.length * 0.7), 12),
-      //     this.height / 2
-      // );
       let fontSize = Math.min(Math.max(width / (text.length * 0.7), 12), height /2)
       let centerX = x + Math.max((width - text.length * fontSize)/2, width*0.01);
       let centerY = y + height/2 + height* 0.15;
@@ -927,8 +916,6 @@ class PacketAnimationManager {
   constructor() {
       // SVG Elements
       this.svg = document.getElementById('drawingSvg');
-      // this.path = document.getElementById('svgPath');
-      // this.pathLength = this.path.getTotalLength();
       
       // Dialog Elements
       this.dialog = document.getElementById('dialog');
@@ -967,8 +954,7 @@ class PacketAnimationManager {
   
   bindEvents() {
       // Path double-click event
-      // this.path.addEventListener('dblclick', () => this.openDialog());
-      
+
       // Button events
       this.startBtn.addEventListener('click', () => this.startAnimation());
       this.pauseBtn.addEventListener('click', () => this.pauseAnimation());
