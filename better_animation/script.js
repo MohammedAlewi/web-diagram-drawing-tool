@@ -920,6 +920,7 @@ class PacketAnimationManager {
       // Dialog Elements
       this.dialog = document.getElementById('dialog');
       this.overlay = document.getElementById('overlay');
+      this.descriptionBox = document.getElementById('descriptionBox');
       
       // Form Elements
       this.packetIdInput = document.getElementById('packetId');
@@ -928,6 +929,7 @@ class PacketAnimationManager {
       this.packetDirectionInput = document.getElementById('packetDirection');
       this.animationDurationInput = document.getElementById('animationDuration');
       this.animationRepeatInput = document.getElementById('animationRepeat');
+      this.packetDescriptionInput = document.getElementById('packetDescription');
       
       // Buttons
       this.startBtn = document.getElementById('startBtn');
@@ -947,6 +949,7 @@ class PacketAnimationManager {
       // State variables
       this.packets = [];
       this.animationState = 'stopped'; // 'running', 'paused', 'stopped'
+      this.activeDescriptions = new Set(); // Track active packets for descriptions
       
       // Initialize
       this.bindEvents();
@@ -1023,7 +1026,13 @@ class PacketAnimationManager {
           } else {
               repeatText = `${packet.repeat} Times`;
           }
-          
+          // Truncate description if it's too long
+          const descriptionDisplay = packet.description ? 
+          (packet.description.length > 30 ? 
+              packet.description.substring(0, 30) + '...' : 
+              packet.description) :
+          '-';
+                          
           row.innerHTML = `
               <td>${packet.id}</td>
               <td style="background-color: ${packet.color}; color: ${this.getContrastColor(packet.color)}">${packet.color}</td>
@@ -1066,6 +1075,7 @@ class PacketAnimationManager {
       const color = this.packetColorInput.value;
       const size = parseInt(this.packetSizeInput.value);
       const direction = this.packetDirectionInput.value;
+      const description = this.packetDescriptionInput.value.trim();
       const duration = parseInt(this.animationDurationInput.value);
       const repeat = parseInt(this.animationRepeatInput.value);
       
@@ -1087,6 +1097,7 @@ class PacketAnimationManager {
           color,
           size,
           direction,
+          description,
           duration,
           repeat,
           element: null,
@@ -1127,6 +1138,7 @@ class PacketAnimationManager {
       
       // Reset form
       this.packetIdInput.value = '';
+      this.packetDescriptionInput.value = '';
       
       // Close dialog
       this.closeDialog();
@@ -1168,18 +1180,59 @@ class PacketAnimationManager {
           loop: repeat,
           begin: () => {
               rect.setAttribute('visibility', 'visible');
+              this.showDescription(packet);
           },
           complete: () => {
               rect.setAttribute('visibility', 'hidden');
               packet.state = 'stopped';
+              this.hideDescription(packet);
               this.checkAllAnimationsComplete();
           }
       });
       
       packet.animation = animation;
   }
-  
-  deletePacket(index) {
+              
+  showDescription(packet) {
+    if (packet.description) {
+        this.activeDescriptions.add(packet.id);
+        this.updateDescriptionBox();
+    }
+}
+
+hideDescription(packet) {
+    if (packet.description) {
+        this.activeDescriptions.delete(packet.id);
+        this.updateDescriptionBox();
+    }
+}
+
+updateDescriptionBox() {
+    if (this.activeDescriptions.size === 0) {
+        // No active packets with descriptions
+        this.descriptionBox.style.opacity = '0';
+        return;
+    }
+    
+    // Collect all active descriptions
+    let descriptions = [];
+    for (const packetId of this.activeDescriptions) {
+        const packet = this.packets.find(p => p.id === packetId);
+        if (packet && packet.description) {
+            descriptions.push(`${packet.description}`);
+        }
+    }
+    
+    // Update description box
+    this.descriptionBox.innerHTML = descriptions.join('<br>');
+    this.descriptionBox.style.opacity = '1';
+  }
+
+  deletePacket(index) {                
+      // Remove from active descriptions if present
+      this.activeDescriptions.delete(packet.id);
+      this.updateDescriptionBox();
+
       const packet = this.packets[index];
       
       // Remove SVG element

@@ -44,6 +44,8 @@
   </svg> -->
   <!-- Dialog box packet start-->
   <div class="overlay" id="overlay"></div>
+  <!-- Description box that will appear at the bottom of the screen -->
+  <div id="descriptionBox" class="description-box"></div>
   <div class="dialog" id="dialog">
       <div class="tabs">
           <div class="tab active" data-tab="addPacket">Add Packet</div>
@@ -74,7 +76,12 @@
                   <option value="end">End to Start</option>
               </select>
           </div>
-          
+        
+          <div class="form-group">
+              <label for="packetDescription">Description:</label>
+              <textarea id="packetDescription" placeholder="Enter a description for this packet"></textarea>
+          </div>
+
           <div class="form-group">
               <label for="animationDuration">Animation Duration (ms):</label>
               <input type="number" id="animationDuration" min="500" max="10000" value="2000">

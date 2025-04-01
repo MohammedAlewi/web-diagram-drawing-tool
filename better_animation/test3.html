@@ -11,6 +11,7 @@
             margin: 0;
             padding: 20px;
             background-color: #f5f5f5;
+            position: relative;
         }
         
         .container {
@@ -101,12 +102,17 @@
             font-weight: bold;
         }
         
-        input, select {
+        input, select, textarea {
             width: 100%;
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
             box-sizing: border-box;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 60px;
         }
         
         .dialog-buttons {
@@ -188,6 +194,24 @@
         .tab-content.active {
             display: block;
         }
+        
+        .description-box {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            max-width: 80%;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1001;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -241,6 +265,11 @@
             </div>
             
             <div class="form-group">
+                <label for="packetDescription">Description:</label>
+                <textarea id="packetDescription" placeholder="Enter a description for this packet"></textarea>
+            </div>
+            
+            <div class="form-group">
                 <label for="animationDuration">Animation Duration (ms):</label>
                 <input type="number" id="animationDuration" min="500" max="10000" value="2000">
             </div>
@@ -272,6 +301,7 @@
                             <th>Color</th>
                             <th>Size</th>
                             <th>Direction</th>
+                            <th>Description</th>
                             <th>Duration</th>
                             <th>Repeat</th>
                             <th>Action</th>
@@ -288,6 +318,9 @@
             </div>
         </div>
     </div>
+    
+    <!-- Description box that will appear at the bottom of the screen -->
+    <div id="descriptionBox" class="description-box"></div>
 
     <script>
         class PacketAnimationManager {
@@ -300,12 +333,14 @@
                 // Dialog Elements
                 this.dialog = document.getElementById('dialog');
                 this.overlay = document.getElementById('overlay');
+                this.descriptionBox = document.getElementById('descriptionBox');
                 
                 // Form Elements
                 this.packetIdInput = document.getElementById('packetId');
                 this.packetColorInput = document.getElementById('packetColor');
                 this.packetSizeInput = document.getElementById('packetSize');
                 this.packetDirectionInput = document.getElementById('packetDirection');
+                this.packetDescriptionInput = document.getElementById('packetDescription');
                 this.animationDurationInput = document.getElementById('animationDuration');
                 this.animationRepeatInput = document.getElementById('animationRepeat');
                 
@@ -327,6 +362,7 @@
                 // State variables
                 this.packets = [];
                 this.animationState = 'stopped'; // 'running', 'paused', 'stopped'
+                this.activeDescriptions = new Set(); // Track active packets for descriptions
                 
                 // Initialize
                 this.bindEvents();
@@ -385,7 +421,7 @@
                 
                 if (this.packets.length === 0) {
                     const row = document.createElement('tr');
-                    row.innerHTML = '<td colspan="7" style="text-align: center;">No packets added yet</td>';
+                    row.innerHTML = '<td colspan="8" style="text-align: center;">No packets added yet</td>';
                     this.packetTableBody.appendChild(row);
                     return;
                 }
@@ -403,11 +439,19 @@
                         repeatText = `${packet.repeat} Times`;
                     }
                     
+                    // Truncate description if it's too long
+                    const descriptionDisplay = packet.description ? 
+                        (packet.description.length > 30 ? 
+                            packet.description.substring(0, 30) + '...' : 
+                            packet.description) :
+                        '-';
+                    
                     row.innerHTML = `
                         <td>${packet.id}</td>
                         <td style="background-color: ${packet.color}; color: ${this.getContrastColor(packet.color)}">${packet.color}</td>
                         <td>${packet.size}px</td>
                         <td>${packet.direction === 'start' ? 'Start to End' : 'End to Start'}</td>
+                        <td title="${packet.description || ''}">${descriptionDisplay}</td>
                         <td>${packet.duration}ms</td>
                         <td>${repeatText}</td>
                         <td>
@@ -445,6 +489,7 @@
                 const color = this.packetColorInput.value;
                 const size = parseInt(this.packetSizeInput.value);
                 const direction = this.packetDirectionInput.value;
+                const description = this.packetDescriptionInput.value.trim();
                 const duration = parseInt(this.animationDurationInput.value);
                 const repeat = parseInt(this.animationRepeatInput.value);
                 
@@ -466,6 +511,7 @@
                     color,
                     size,
                     direction,
+                    description,
                     duration,
                     repeat,
                     element: null,
@@ -506,6 +552,7 @@
                 
                 // Reset form
                 this.packetIdInput.value = '';
+                this.packetDescriptionInput.value = '';
                 
                 // Close dialog
                 this.closeDialog();
@@ -547,10 +594,12 @@
                     loop: repeat,
                     begin: () => {
                         rect.setAttribute('visibility', 'visible');
+                        this.showDescription(packet);
                     },
                     complete: () => {
                         rect.setAttribute('visibility', 'hidden');
                         packet.state = 'stopped';
+                        this.hideDescription(packet);
                         this.checkAllAnimationsComplete();
                     }
                 });
@@ -558,8 +607,47 @@
                 packet.animation = animation;
             }
             
+            showDescription(packet) {
+                if (packet.description) {
+                    this.activeDescriptions.add(packet.id);
+                    this.updateDescriptionBox();
+                }
+            }
+            
+            hideDescription(packet) {
+                if (packet.description) {
+                    this.activeDescriptions.delete(packet.id);
+                    this.updateDescriptionBox();
+                }
+            }
+            
+            updateDescriptionBox() {
+                if (this.activeDescriptions.size === 0) {
+                    // No active packets with descriptions
+                    this.descriptionBox.style.opacity = '0';
+                    return;
+                }
+                
+                // Collect all active descriptions
+                let descriptions = [];
+                for (const packetId of this.activeDescriptions) {
+                    const packet = this.packets.find(p => p.id === packetId);
+                    if (packet && packet.description) {
+                        descriptions.push(`<span style="color:${packet.color}">${packet.id}</span>: ${packet.description}`);
+                    }
+                }
+                
+                // Update description box
+                this.descriptionBox.innerHTML = descriptions.join('<br>');
+                this.descriptionBox.style.opacity = '1';
+            }
+            
             deletePacket(index) {
                 const packet = this.packets[index];
+                
+                // Remove from active descriptions if present
+                this.activeDescriptions.delete(packet.id);
+                this.updateDescriptionBox();
                 
                 // Remove SVG element
                 if (packet.element) {
