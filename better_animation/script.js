@@ -945,11 +945,21 @@ class PacketAnimationManager {
       
       // Table
       this.packetTableBody = document.getElementById('packetTableBody');
+
+      // animation 
+      this.running_packets = []
+      this.current_running_order = 0
       
       // State variables
       this.packets = [];
       this.animationState = 'stopped'; // 'running', 'paused', 'stopped'
       this.activeDescriptions = new Set(); // Track active packets for descriptions
+      this.currentPath = null; // Track the current path
+      
+      // New state variables for ordered animation
+      this.orderedPacketIds = []; // Array of unique packet IDs in ascending order
+      this.currentIdIndex = 0; // Current index in the orderedPacketIds array
+      this.activeAnimations = 0; // Count of currently active animations
       
       // Initialize
       this.bindEvents();
@@ -976,7 +986,8 @@ class PacketAnimationManager {
   }
   
   openDialog(e) {
-      this.path = e.target
+      this.path = e.target;
+      this.currentPath = e.target; // Store current path
       this.pathLength = this.path.getTotalLength();
       this.dialog.style.display = 'block';
       this.overlay.style.display = 'block';
@@ -1007,14 +1018,17 @@ class PacketAnimationManager {
   updatePacketTable() {
       this.packetTableBody.innerHTML = '';
       
-      if (this.packets.length === 0) {
+      // Filter packets for current path only
+      const currentPathPackets = this.packets.filter(packet => packet.path === this.currentPath);
+      
+      if (currentPathPackets.length === 0) {
           const row = document.createElement('tr');
-          row.innerHTML = '<td colspan="7" style="text-align: center;">No packets added yet</td>';
+          row.innerHTML = '<td colspan="7" style="text-align: center;">No packets added yet for this path</td>';
           this.packetTableBody.appendChild(row);
           return;
       }
       
-      this.packets.forEach((packet, index) => {
+      currentPathPackets.forEach((packet, index) => {
           const row = document.createElement('tr');
           
           // Format the repeat display
@@ -1026,6 +1040,7 @@ class PacketAnimationManager {
           } else {
               repeatText = `${packet.repeat} Times`;
           }
+          
           // Truncate description if it's too long
           const descriptionDisplay = packet.description ? 
           (packet.description.length > 30 ? 
@@ -1041,7 +1056,7 @@ class PacketAnimationManager {
               <td>${packet.duration}ms</td>
               <td>${repeatText}</td>
               <td>
-                  <button class="delete-btn" data-index="${index}">Delete</button>
+                  <button class="delete-btn" data-index="${this.packets.indexOf(packet)}">Delete</button>
               </td>
           `;
           this.packetTableBody.appendChild(row);
@@ -1085,12 +1100,6 @@ class PacketAnimationManager {
           return;
       }
       
-      // Check for duplicate ID
-      if (this.packets.some(packet => packet.id === id)) {
-          alert('Packet ID already exists. Please use a unique ID.');
-          return;
-      }
-      
       // Create packet object
       const packet = {
           id,
@@ -1102,12 +1111,13 @@ class PacketAnimationManager {
           repeat,
           element: null,
           animation: null,
-          state: 'stopped'
+          state: 'stopped',
+          path: this.currentPath // Store the path reference
       };
       
       // Create SVG element for the packet
       const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      rect.setAttribute('id', `packet-${id}`);
+      rect.setAttribute('id', `packet-${id}-${this.packets.length}`); // Ensure unique ID
       rect.setAttribute('width', size);
       rect.setAttribute('height', size);
       rect.setAttribute('fill', color);
@@ -1140,12 +1150,12 @@ class PacketAnimationManager {
       this.packetIdInput.value = '';
       this.packetDescriptionInput.value = '';
       
-      // Close dialog
-      this.closeDialog();
+      // Update the table
+      this.updatePacketTable();
   }
   
   createPathAnimation(packet) {
-      const pathNode = this.path;
+      const pathNode = packet.path;
       const rect = packet.element;
       const size = packet.size;
       const duration = packet.duration;
@@ -1153,7 +1163,7 @@ class PacketAnimationManager {
       const repeat = packet.repeat;
       
       // Create SVG points for motion
-      const pathLength = this.pathLength;
+      const pathLength = pathNode.getTotalLength();
       let motionPath = [];
       
       // Create points along the path for animation
@@ -1177,16 +1187,22 @@ class PacketAnimationManager {
           duration: duration,
           easing: 'linear',
           autoplay: false,
-          loop: repeat,
+          loop: repeat < 0 ? true : repeat > 1 ? repeat - 1 : false, // Handle loop/repeat correctly
           begin: () => {
               rect.setAttribute('visibility', 'visible');
               this.showDescription(packet);
+              this.activeAnimations++;
           },
           complete: () => {
               rect.setAttribute('visibility', 'hidden');
               packet.state = 'stopped';
               this.hideDescription(packet);
-              this.checkAllAnimationsComplete();
+              this.activeAnimations--;
+              
+              // If all animations for the current ID have finished, move to the next ID group
+              if (this.animationState === 'running' && this.activeAnimations === 0) {
+                  this.moveToNextIdGroup();
+              }
           }
       });
       
@@ -1198,42 +1214,42 @@ class PacketAnimationManager {
         this.activeDescriptions.add(packet.id);
         this.updateDescriptionBox();
     }
-}
+  }
 
-hideDescription(packet) {
-    if (packet.description) {
-        this.activeDescriptions.delete(packet.id);
-        this.updateDescriptionBox();
-    }
-}
+  hideDescription(packet) {
+      if (packet.description) {
+          this.activeDescriptions.delete(packet.id);
+          this.updateDescriptionBox();
+      }
+  }
 
-updateDescriptionBox() {
-    if (this.activeDescriptions.size === 0) {
-        // No active packets with descriptions
-        this.descriptionBox.style.opacity = '0';
-        return;
-    }
-    
-    // Collect all active descriptions
-    let descriptions = [];
-    for (const packetId of this.activeDescriptions) {
-        const packet = this.packets.find(p => p.id === packetId);
-        if (packet && packet.description) {
-            descriptions.push(`${packet.description}`);
-        }
-    }
-    
-    // Update description box
-    this.descriptionBox.innerHTML = descriptions.join('<br>');
-    this.descriptionBox.style.opacity = '1';
+  updateDescriptionBox() {
+      if (this.activeDescriptions.size === 0) {
+          // No active packets with descriptions
+          this.descriptionBox.style.opacity = '0';
+          return;
+      }
+      
+      // Collect all active descriptions
+      let descriptions = [];
+      for (const packetId of this.activeDescriptions) {
+          const packet = this.packets.find(p => p.id === packetId);
+          if (packet && packet.description) {
+              descriptions.push(`${packet.description}`);
+          }
+      }
+      
+      // Update description box
+      this.descriptionBox.innerHTML = descriptions.join('<br>');
+      this.descriptionBox.style.opacity = '1';
   }
 
   deletePacket(index) {                
+      const packet = this.packets[index];
+      
       // Remove from active descriptions if present
       this.activeDescriptions.delete(packet.id);
       this.updateDescriptionBox();
-
-      const packet = this.packets[index];
       
       // Remove SVG element
       if (packet.element) {
@@ -1247,23 +1263,90 @@ updateDescriptionBox() {
       this.updatePacketTable();
       
       // Update buttons
-      if (this.packets.length === 0) {
+      if (this.packets.filter(p => p.path === this.currentPath).length === 0) {
           this.startBtn.disabled = true;
           this.pauseBtn.disabled = true;
           this.restartBtn.disabled = true;
-          this.animationState = 'stopped';
       }
+  }
+  
+  // Helper method to get unique, sorted packet IDs
+  getOrderedPacketIds() {
+      // Extract all unique IDs and sort them
+      const uniqueIds = [...new Set(this.packets.map(packet => packet.id))];
+      
+      // Sort IDs numerically if they're numbers, otherwise lexicographically
+      return uniqueIds.sort((a, b) => {
+          const numA = Number(a);
+          const numB = Number(b);
+          
+          if (!isNaN(numA) && !isNaN(numB)) {
+              return numA - numB; // Numeric sort
+          }
+          
+          return a.localeCompare(b); // String sort
+      });
+  }
+  
+  // Move to the next ID group and start animations
+  moveToNextIdGroup() {
+      this.currentIdIndex++;
+      
+      // If we have more ID groups to process
+      if (this.currentIdIndex < this.orderedPacketIds.length) {
+          this.startCurrentIdAnimations();
+      } else {
+          // All ID groups have been processed
+          this.checkAllAnimationsComplete();
+      }
+  }
+  
+  // Start animations for the current ID group
+  startCurrentIdAnimations() {
+      if (this.currentIdIndex >= this.orderedPacketIds.length) {
+          return; // Safety check
+      }
+      
+      const currentId = this.orderedPacketIds[this.currentIdIndex];
+      
+      // Get all packets with the current ID
+      const packetsToAnimate = this.packets.filter(packet => 
+          packet.id === currentId && packet.state === 'stopped'
+      );
+      
+      if (packetsToAnimate.length === 0) {
+          // No packets with this ID, move to the next ID
+          this.moveToNextIdGroup();
+          return;
+      }
+      
+      // Start animations for all packets with this ID
+      packetsToAnimate.forEach(packet => {
+          packet.animation.play();
+          packet.state = 'running';
+      });
   }
   
   startAnimation() {
       if (this.animationState === 'running') return;
       
-      this.packets.forEach(packet => {
-          if (packet.state !== 'running') {
-              packet.animation.play();
-              packet.state = 'running';
-          }
-      });
+      if (this.animationState === 'paused') {
+          // Resume paused animations
+          this.packets.forEach(packet => {
+              if (packet.state === 'paused') {
+                  packet.animation.play();
+                    packet.state = 'running';
+                }
+            });
+      } else {
+          // Fresh start (from stopped state)
+          this.orderedPacketIds = this.getOrderedPacketIds();
+          this.currentIdIndex = 0;
+          this.activeAnimations = 0;
+          
+          // Start with the first ID group
+          this.startCurrentIdAnimations();
+      }
       
       this.animationState = 'running';
       this.startBtn.disabled = true;
@@ -1287,10 +1370,25 @@ updateDescriptionBox() {
   }
   
   restartAnimation() {
+      // Reset all packet states
       this.packets.forEach(packet => {
-          packet.animation.restart();
-          packet.state = 'running';
+          if (packet.state !== 'stopped') {
+              packet.animation.pause();
+          }
+          packet.element.setAttribute('visibility', 'hidden');
+          packet.state = 'stopped';
+          this.hideDescription(packet);
       });
+      
+      // Reset animation counters
+      this.activeAnimations = 0;
+      this.activeDescriptions.clear();
+      this.updateDescriptionBox();
+      
+      // Start fresh
+      this.orderedPacketIds = this.getOrderedPacketIds();
+      this.currentIdIndex = 0;
+      this.startCurrentIdAnimations();
       
       this.animationState = 'running';
       this.startBtn.disabled = true;
